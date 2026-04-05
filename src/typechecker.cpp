@@ -64,11 +64,12 @@ void TypeChecker::close(ASTNode *node) {
     TypeThing *lhs = assign->type;
     TypeThing *rhs = assign->value->t;
 
-    if (lhs == rhs) {
+    if (lhs == rhs) { // L67
       return;
     }
 
-    if (lhs->kind == TypeKind::POINTER && rhs->kind == TypeKind::POINTER) {
+    if (lhs->kind == TypeKind::POINTER &&
+        rhs->kind == TypeKind::POINTER) { // L71
       auto lp = std::get<PtrType>(lhs->data);
       auto rp = std::get<PtrType>(rhs->data);
 
@@ -84,36 +85,33 @@ void TypeChecker::close(ASTNode *node) {
     error("assignment type mismatch");
   } else if (auto cal = dynamic_cast<CallExpr *>(node)) {
 
-    if (cal->func->t) {
+    if (auto *att = dynamic_cast<AttribExpr *>(cal->func)) {
 
-      if (auto *att = dynamic_cast<AttribExpr *>(cal->func)) {
+      if (att->bar.value == "alloc") {
 
-        if (att->bar.value == "alloc") {
+        TypeThing *region_type = att->foo->t;
 
-          TypeThing *region_type = att->foo->t;
-
-          if (region_type->kind != TypeKind::REGION) {
-            error("alloc must be called on a region");
-          }
-
-          if (cal->args.size() != 1) {
-            error("alloc expects one type argument");
-          }
-
-          TypeThing *arg = cal->args[0]->t;
-
-          if (arg->kind != TypeKind::META) {
-            error("alloc expects a type");
-          }
-
-          TypeThing *allocated = std::get<MetaType>(arg->data).type;
-
-          cal->t = interner->getPointer(interner->getRegioned(
-              allocated, std::get<RegionType>(region_type->data).id));
-
-          cout << "Wat? " << cal->t->toString() << endl;
-          return;
+        if (region_type->kind != TypeKind::REGION) {
+          error("alloc must be called on a region");
         }
+
+        if (cal->args.size() != 1) {
+          error("alloc expects one type argument");
+        }
+
+        TypeThing *arg = cal->args[0]->t;
+
+        if (arg->kind != TypeKind::META) {
+          error("alloc expects a type");
+        }
+
+        TypeThing *allocated = std::get<MetaType>(arg->data).type;
+
+        cal->t = interner->getPointer(interner->getRegioned(
+            allocated, std::get<RegionType>(region_type->data).id));
+
+        cout << "Wat? " << cal->t->toString() << "\n";
+        return;
       }
     }
   }
