@@ -1,0 +1,10 @@
+i32 main() {
+    region foo {
+
+        i32* a = foo.alloc(i32);
+        i32** b = foo.alloc(i32*);
+
+        return 0;
+
+    }
+}

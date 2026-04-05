@@ -1,0 +1,49 @@
+CompileFlags:
+  Add:
+    [
+      -Wall,
+      -Wextra,
+      -Wpedantic,
+      -Wshadow,
+      -Wconversion,
+      -Wsign-conversion
+    ]
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      [
+        clang-analyzer-*,
+
+        bugprone-*,
+        performance-*,
+        portability-*,
+
+        modernize-*,
+
+        readability-identifier-naming,
+        readability-braces-around-statements,
+        readability-const-return-type,
+
+        misc-unused-parameters,
+        misc-definitions-in-headers
+      ]
+
+    Remove:
+      [
+        readability-magic-numbers,
+        cppcoreguidelines-avoid-magic-numbers,
+        cppcoreguidelines-avoid-non-const-global-variables,
+        modernize-use-trailing-return-type
+      ]
+
+    CheckOptions:
+      readability-identifier-naming.VariableCase: lower_case
+
+      readability-identifier-naming.FunctionCase: camelBack
+
+      readability-identifier-naming.ClassCase: CamelCase
+
+      readability-identifier-naming.EnumCase: CamelCase
+
+      readability-function-cognitive-complexity.Threshold: 80

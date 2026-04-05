@@ -1,0 +1,240 @@
+#include "type.h"
+#include <cstdint>
+#include <string>
+
+using namespace std;
+
+string TypeThing::toString() {
+  switch (kind) {
+  case TypeKind::VOID:
+    return "void";
+  case TypeKind::BOOL:
+    return "bool";
+  case TypeKind::UNTYPED_INT:
+    return "unint";
+  case TypeKind::UNTYPED_FLOAT:
+    return "unfloat";
+  case TypeKind::U8:
+    return "u8";
+  case TypeKind::U16:
+    return "u16";
+  case TypeKind::U32:
+    return "u32";
+  case TypeKind::U64:
+    return "u64";
+  case TypeKind::I8:
+    return "i8";
+  case TypeKind::I16:
+    return "i16";
+  case TypeKind::I32:
+    return "i32";
+  case TypeKind::I64:
+    return "i64";
+  case TypeKind::F32:
+    return "f32";
+  case TypeKind::F64:
+    return "f64";
+  case TypeKind::REGIONED: {
+    RegionedType r = std::get<RegionedType>(data);
+    return r.base->toString() + "@R" + to_string(r.regionID);
+  }
+  case TypeKind::TYPE_VAR:
+    return "<" + std::get<VarType>(data).name + ">";
+  case TypeKind::FUNCTION: {
+    FuncType f = std::get<FuncType>(data);
+    return f.return_type->toString() + " func()";
+  }
+  case TypeKind::REGION:
+    return "region";
+  case TypeKind::META:
+    return "type";
+  case TypeKind::POINTER:
+    return std::get<PtrType>(data).pointee->toString() + "*";
+  case TypeKind::REFERENCE:
+    return std::get<RefType>(data).referee->toString() + "&";
+  case TypeKind::ARRAY:
+    ArrType arr = std::get<ArrType>(data);
+    return arr.element->toString() + "[" + std::to_string(arr.length) + "]";
+  }
+}
+
+TypeThing *TypeInterner::getRegion(uint32_t regionID) {
+  TypeKey key{};
+  key.kind = TypeKind::REGION;
+  key.region = regionID;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::REGION,
+                          .data = RegionType{.id = regionID}};
+
+  table[key] = t;
+  return t;
+}
+
+TypeThing *TypeInterner::getRegioned(TypeThing *base, uint32_t regionID) {
+  TypeKey key{};
+  key.kind = TypeKind::REGIONED;
+  key.a = base;
+  key.region = regionID;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t =
+      new TypeThing{.kind = TypeKind::REGIONED,
+                    .data = RegionedType{.base = base, .regionID = regionID}};
+
+  table[key] = t;
+  return t;
+}
+
+TypeThing *TypeInterner::getPointer(TypeThing *pointee) {
+  TypeKey key{};
+  key.kind = TypeKind::POINTER;
+  key.a = pointee;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::POINTER,
+                          .data = PtrType{.pointee = pointee}};
+
+  table[key] = t;
+  return t;
+}
+
+TypeThing *TypeInterner::getReference(TypeThing *referee) {
+  TypeKey key{};
+  key.kind = TypeKind::REFERENCE;
+  key.a = referee;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::REFERENCE,
+                          .data = RefType{.referee = referee}};
+
+  table[key] = t;
+  return t;
+}
+
+TypeThing *TypeInterner::getArray(TypeThing *elem, size_t len) {
+  TypeKey key{};
+  key.kind = TypeKind::ARRAY;
+  key.a = elem;
+  key.length = len;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::ARRAY,
+                          .data = ArrType{.element = elem, .length = len}};
+
+  table[key] = t;
+  return t;
+}
+
+TypeThing *TypeInterner::getFunction(const std::vector<TypeThing *> &params,
+                                     TypeThing *returnType) {
+  TypeKey key{};
+  key.kind = TypeKind::FUNCTION;
+  key.params = params;
+  key.a = returnType;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{
+      .kind = TypeKind::FUNCTION,
+      .data = FuncType{.params = params, .return_type = returnType}};
+
+  table[key] = t;
+  return t;
+}
+
+TypeThing *TypeInterner::getMeta(TypeThing *inside) {
+  TypeKey key{};
+  key.kind = TypeKind::META;
+  key.a = inside;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::META, .data = MetaType{inside}};
+
+  table[key] = t;
+  return t;
+}
+
+TypeThing *TypeInterner::getTypeVar(const string &name) {
+  TypeKey key{};
+  key.kind = TypeKind::TYPE_VAR;
+  key.name = name;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::TYPE_VAR, .data = VarType{name}};
+
+  table[key] = t;
+  return t;
+}
+
+static TypeInterner interner_obj;
+TypeInterner *interner = &interner_obj;
+
+static TypeThing type_void_obj{.kind = TypeKind::VOID, .data = {}};
+static TypeThing type_bool_obj{.kind = TypeKind::BOOL, .data = {}};
+
+static TypeThing type_unint_obj{.kind = TypeKind::UNTYPED_INT, .data = {}};
+static TypeThing type_unfloat_obj{.kind = TypeKind::UNTYPED_FLOAT, .data = {}};
+
+static TypeThing type_u8_obj{.kind = TypeKind::U8, .data = {}};
+static TypeThing type_u16_obj{.kind = TypeKind::U16, .data = {}};
+static TypeThing type_u32_obj{.kind = TypeKind::U32, .data = {}};
+static TypeThing type_u64_obj{.kind = TypeKind::U64, .data = {}};
+
+static TypeThing type_i8_obj{.kind = TypeKind::I8, .data = {}};
+static TypeThing type_i16_obj{.kind = TypeKind::I16, .data = {}};
+static TypeThing type_i32_obj{.kind = TypeKind::I32, .data = {}};
+static TypeThing type_i64_obj{.kind = TypeKind::I64, .data = {}};
+
+static TypeThing type_f32_obj{.kind = TypeKind::F32, .data = {}};
+static TypeThing type_f64_obj{.kind = TypeKind::F64, .data = {}};
+
+TypeThing *type_void = &type_void_obj;
+TypeThing *type_bool = &type_bool_obj;
+
+TypeThing *type_unint = &type_unint_obj;
+TypeThing *type_unfloat = &type_unfloat_obj;
+
+TypeThing *type_u8 = &type_u8_obj;
+TypeThing *type_u16 = &type_u16_obj;
+TypeThing *type_u32 = &type_u32_obj;
+TypeThing *type_u64 = &type_u64_obj;
+
+TypeThing *type_i8 = &type_i8_obj;
+TypeThing *type_i16 = &type_i16_obj;
+TypeThing *type_i32 = &type_i32_obj;
+TypeThing *type_i64 = &type_i64_obj;
+
+TypeThing *type_f32 = &type_f32_obj;
+TypeThing *type_f64 = &type_f64_obj;
