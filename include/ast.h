@@ -2,6 +2,7 @@
 
 #include "decl.h"
 #include "lexer.h"
+#include "territory_ast.h"
 #include "type.h"
 #include <algorithm>
 #include <atomic>
@@ -158,6 +159,8 @@ public:
 
 class Stmt : public ASTNode {
 public:
+  Region *region = nullptr;
+
   ~Stmt() override = default;
 };
 
@@ -175,6 +178,24 @@ public:
 
   string toString() override {
     return "AssignStmt<" + type->toString() + " " + name.value + ">";
+  }
+};
+
+class AssignExpr : public Expr {
+public:
+  Expr *left = nullptr;
+  Lexer::Token op;
+  Expr *right = nullptr;
+  Decl *decl = nullptr;
+
+  AssignExpr(Expr *left, Lexer::Token op, Expr *right)
+      : left(left), op(std::move(op)), right(right) {}
+
+  std::vector<ASTNode *> walk() override { return {left, right}; }
+
+  string toString() override {
+    return "AssignExpr<" + left->toString() + " " + op.value + " " +
+           right->toString() + ">";
   }
 };
 

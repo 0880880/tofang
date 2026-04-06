@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "ast.h"
 #include "type.h"
+#include <cassert>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -27,6 +28,13 @@ public:
   Ptr &operator++() {
     if (it != end) {
       ++it;
+    }
+    return *this;
+  }
+
+  Ptr &operator--() {
+    if (it != end) { // FIXME check if it != begin
+      --it;
     }
     return *this;
   }
@@ -120,9 +128,9 @@ optional<TypeThing *> type(Ptr &p) {
 }
 
 int precedence(const std::string &op) {
-  if (op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=") {
-    return 1;
-  }
+  // if (op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=") {
+  //   return 1;
+  // }
   if (op == "||") {
     return 2;
   }
@@ -132,22 +140,22 @@ int precedence(const std::string &op) {
   if (op == "|") {
     return 4;
   }
-  if (op == "&") {
+  if (op == "^") {
     return 5;
   }
-  if (op == "==" || op == "!=") {
+  if (op == "&") {
     return 6;
   }
-  if (op == "<" || op == "<=" || op == ">" || op == ">=") {
+  if (op == "==" || op == "!=") {
     return 7;
   }
-  if (op == "+" || op == "-") {
+  if (op == "<" || op == "<=" || op == ">" || op == ">=") {
     return 8;
   }
-  if (op == "*" || op == "/") {
+  if (op == "+" || op == "-") {
     return 9;
   }
-  if (op == "^") {
+  if (op == "*" || op == "/") {
     return 10;
   }
   return -1;
@@ -155,15 +163,10 @@ int precedence(const std::string &op) {
 
 Expr *expr(Ptr &p, int minPrec = 0);
 
-Expr *prefix(Ptr &p) {
-  if (p.eof()) {
-    throw std::runtime_error("Unexpected EOF in prefix()");
-  }
+Expr *primary(Ptr &p) {
 
-  if (p.is("OP") && p.expectV("&", "*", "-", "+", "!")) {
-    Lexer::Token op = *p;
-    ++p;
-    return new UnaryExpr(op, expr(p));
+  if (p.eof()) {
+    throw std::runtime_error("Unexpected EOF in primary()");
   }
 
   if (p.is("IDENTIFIER")) {
@@ -205,12 +208,12 @@ Expr *prefix(Ptr &p) {
     return new GroupingExpr(inner);
   }
 
-  throw runtime_error("Unexpected token in prefix(): " + (*p).type + "  L" +
+  throw runtime_error("Unexpected token in primary(): " + (*p).type + "  L" +
                       to_string((*p).sourceLineStart));
 }
 
 Expr *postfix(Ptr &p) {
-  Expr *left = prefix(p);
+  Expr *left = primary(p);
   while (!p.eof()) {
     if (p.is("DOT")) {
       ++p;
@@ -232,7 +235,9 @@ Expr *postfix(Ptr &p) {
         }
         start = false;
         auto l = new LiteralExpr(LiteralExpr::Type::MetaType, *p);
-        l->typeValue = *type(p);
+        auto t = type(p);
+        assert(t);
+        l->typeValue = *t;
         c->typeArgs.push_back(l);
       }
       ++p;
@@ -268,8 +273,22 @@ Expr *postfix(Ptr &p) {
   return left;
 }
 
-Expr *expr(Ptr &p, int minPrec) {
-  Expr *left = postfix(p);
+Expr *prefix(Ptr &p) {
+  if (p.eof()) {
+    throw std::runtime_error("Unexpected EOF in prefix()");
+  }
+
+  if (p.is("OP") && p.expectV("&", "*", "-", "+", "!")) {
+    Lexer::Token op = *p;
+    ++p;
+    return new UnaryExpr(op, prefix(p));
+  }
+
+  return postfix(p);
+}
+
+Expr *binExpr(Ptr &p, int minPrec) {
+  Expr *left = prefix(p);
 
   while (!p.eof() && p.is("OP")) {
     Lexer::Token op = *p;
@@ -282,6 +301,19 @@ Expr *expr(Ptr &p, int minPrec) {
 
     Expr *right = expr(p, prec + 1);
     left = new BinaryExpr(left, op, right);
+  }
+
+  return left;
+}
+
+Expr *expr(Ptr &p, int minPrec) {
+  Expr *left = binExpr(p, minPrec);
+
+  if (!p.eof() && p.is("EQUAL")) {
+    Lexer::Token op = *p;
+    ++p;
+    Expr *right = expr(p, 0);
+    return new AssignExpr(left, op, right);
   }
 
   return left;

@@ -2,6 +2,7 @@
 
 #include "decl_type.h"
 #include "lexer.h"
+#include "territory_ast.h"
 #include "type.h"
 #include <cstdint>
 #include <deque>
@@ -9,6 +10,7 @@
 #include <unordered_map>
 #include <variant>
 #include <vector>
+
 
 enum class DeclKind : uint8_t {
   VAR,
@@ -40,6 +42,7 @@ struct Decl {
   DeclKind kind;
   Lexer::Token name;
   DeclData data;
+  Region *region;
 
   TypeThing *toType();
 };

@@ -56,6 +56,16 @@ void TypeChecker::close(ASTNode *node) {
     }
 
     bin->t = lhs;
+  } else if (auto *assign = dynamic_cast<AssignExpr *>(node)) {
+
+    TypeThing *lhs = assign->left->t;
+    TypeThing *rhs = assign->right->t;
+
+    if (lhs != rhs) {
+      error("type mismatch in assignment");
+    }
+
+    assign->t = lhs;
   } else if (auto *ret = dynamic_cast<ReturnStmt *>(node)) {
 
     TypeThing *typ = ret->value->t;

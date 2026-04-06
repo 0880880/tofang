@@ -56,10 +56,9 @@ int main() {
   lexer.token("[a-zA-Z_][a-zA-Z0-9_]*", "IDENTIFIER");
   lexer.token("=", "EQUAL");
   lexer.token("\\+\\+|--", "ASSIGN");
-  lexer.token(
-      "\\+|-|/"
-      "|\\*|@|&|^|\\||&&|\\|\\|==|\\!=|\\>|\\<|\\>=|\\<=|\\!|\\+=|-=|\\*=|/=",
-      "OP");
+  lexer.token("\\+|-|/"
+              "|\\*|@|&|^|\\||&&|\\|\\|==|\\!=|\\>|\\<|\\>=|\\<=|\\!",
+              "OP");
   lexer.token(",", "COMMA");
   lexer.token("\\.", "DOT");
   lexer.token(":", "COLON");
