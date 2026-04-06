@@ -114,7 +114,7 @@ void TypeChecker::close(ASTNode *node) {
         TypeThing *allocated = std::get<MetaType>(arg->data).type;
 
         cal->t = interner->getPointer(interner->getRegioned(
-            allocated, std::get<RegionType>(region_type->data).id));
+            allocated, std::get<RegionType>(region_type->data).region));
 
         return;
       }

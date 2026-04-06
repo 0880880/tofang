@@ -71,6 +71,10 @@ struct VarType {
   std::string name;
 };
 
+struct RegionType {
+  Decl *region;
+};
+
 struct GenericFuncType {
   std::vector<TypeThing *> type_params;
   std::vector<TypeThing *> params;
@@ -78,8 +82,8 @@ struct GenericFuncType {
 };
 
 using TypeData =
-    std::variant<RegionedType, PtrType, RefType, ArrType, StructType, FuncType,
-                 MetaType, VarType, GenericFuncType>;
+    std::variant<RegionedType, RegionType, PtrType, RefType, ArrType,
+                 StructType, FuncType, MetaType, VarType, GenericFuncType>;
 
 struct TypeThing {
   TypeKind kind;
@@ -178,6 +182,8 @@ public:
 
   TypeThing *getTypeVar(const std::string &name);
 
+  TypeThing *getRegion(Decl *region);
+
   TypeThing *substitute(
       TypeThing *t,
       std::unordered_map<TypeKey, TypeThing *, TypeKeyHash, TypeKeyEq> &subst);
@@ -199,5 +205,3 @@ extern TypeThing *type_i32;
 extern TypeThing *type_i64;
 extern TypeThing *type_f32;
 extern TypeThing *type_f64;
-
-extern TypeThing *type_region;

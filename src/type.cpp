@@ -59,6 +59,23 @@ string TypeThing::toString() {
   }
 }
 
+TypeThing *TypeInterner::getRegion(Decl *region) {
+  TypeKey key{};
+  key.kind = TypeKind::REGION;
+  key.region = region;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::REGION,
+                          .data = RegionType{.region = region}};
+
+  table[key] = t;
+  return t;
+}
+
 TypeThing *TypeInterner::getRegioned(TypeThing *base, Decl *region) {
   TypeKey key{};
   key.kind = TypeKind::REGIONED;
@@ -263,8 +280,6 @@ static TypeThing type_i64_obj{.kind = TypeKind::I64, .data = {}};
 static TypeThing type_f32_obj{.kind = TypeKind::F32, .data = {}};
 static TypeThing type_f64_obj{.kind = TypeKind::F64, .data = {}};
 
-static TypeThing type_region_obj{.kind = TypeKind::REGION, .data = {}};
-
 TypeThing *type_void = &type_void_obj;
 TypeThing *type_bool = &type_bool_obj;
 
@@ -283,5 +298,3 @@ TypeThing *type_i64 = &type_i64_obj;
 
 TypeThing *type_f32 = &type_f32_obj;
 TypeThing *type_f64 = &type_f64_obj;
-
-TypeThing *type_region = &type_region_obj;

@@ -26,7 +26,7 @@ TypeThing *Decl::toType() {
     return interner->getGenericFunction(f.genericParams, p, f.returnType);
   }
   case DeclKind::REGION: {
-    return type_region;
+    return interner->getRegion(this);
   }
   }
 }
