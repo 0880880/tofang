@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 using namespace std;
 
@@ -22,15 +23,56 @@ void TypeChecker::open(ASTNode *node) {
   }
 }
 
+constexpr inline static bool isUnsigned(const TypeThing *t) {
+  return t->kind == TypeKind::U8 || t->kind == TypeKind::U16 ||
+         t->kind == TypeKind::U32 || t->kind == TypeKind::U64;
+}
+constexpr inline static bool isSigned(const TypeThing *t) {
+  return t->kind == TypeKind::I8 || t->kind == TypeKind::I16 ||
+         t->kind == TypeKind::I32 || t->kind == TypeKind::I64;
+}
+constexpr inline static bool isInt(const TypeThing *t) {
+  return isUnsigned(t) || isSigned(t) || t->kind == TypeKind::UNTYPED_INT;
+}
+constexpr inline static bool isFloat(const TypeThing *t) {
+  return t->kind == TypeKind::F32 || t->kind == TypeKind::F64 ||
+         t->kind == TypeKind::UNTYPED_FLOAT;
+}
+constexpr inline static bool isNumeric(const TypeThing *t) {
+  return isFloat(t) || isInt(t);
+}
+static int numOrder(const TypeThing *t) {
+  switch (t->kind) {
+  case TypeKind::F64:
+    return 100;
+  case TypeKind::F32:
+    return 99;
+  case TypeKind::I64:
+  case TypeKind::U64:
+    return 98;
+  case TypeKind::I32:
+  case TypeKind::U32:
+    return 97;
+  case TypeKind::I16:
+  case TypeKind::U16:
+    return 96;
+  case TypeKind::I8:
+  case TypeKind::U8:
+    return 95;
+  default:
+    return 0;
+  }
+}
+
 void TypeChecker::close(ASTNode *node) {
 
   if (auto *lit = dynamic_cast<LiteralExpr *>(node)) {
     switch (lit->type) {
     case LiteralExpr::Integer:
-      lit->t = type_i32;
+      lit->t = type_unint;
       break;
     case LiteralExpr::Decimal:
-      lit->t = type_f64;
+      lit->t = type_unfloat;
       break;
     case LiteralExpr::Boolean:
       lit->t = type_bool;
@@ -48,14 +90,80 @@ void TypeChecker::close(ASTNode *node) {
     var->t = var->decl->toType();
   } else if (auto *bin = dynamic_cast<BinaryExpr *>(node)) {
 
-    TypeThing *lhs = bin->left->t;
-    TypeThing *rhs = bin->right->t;
+    string op = bin->op.value;
 
-    if (lhs != rhs) {
-      error("type mismatch in binary op");
+    vector<pair<TypeThing *, TypeThing *>> combinations = {
+        {bin->left->t, bin->right->t}, {bin->right->t, bin->left->t}};
+
+    for (auto &[lhs, rhs] : combinations) {
+      if (op == "+" || op == "-" || op == "*" || op == "/") {
+        if (!isNumeric(lhs) || !isNumeric(rhs)) {
+          error("operands of aritmhetic operation must be numeric");
+        }
+        if ((isUnsigned(lhs) && !isUnsigned(rhs)) ||
+            (!isUnsigned(lhs) && isUnsigned(rhs))) {
+          error(
+              "arithmetic operation between unsigned and non-unsigned type is "
+              "invalid.");
+        }
+        if (lhs->kind == TypeKind::UNTYPED_INT &&
+            rhs->kind == TypeKind::UNTYPED_INT) {
+          bin->t = type_i32;
+          break;
+        }
+        if (lhs->kind == TypeKind::UNTYPED_FLOAT &&
+            (rhs->kind == TypeKind::UNTYPED_FLOAT ||
+             rhs->kind == TypeKind::UNTYPED_INT)) {
+          bin->t = type_f64;
+          break;
+        }
+        if (lhs == rhs) {
+          bin->t = lhs;
+          break;
+        }
+        if (numOrder(lhs) >= numOrder(rhs)) {
+          bin->t = lhs;
+          break;
+        }
+      } else if (op == "&" || op == "|" || op == "^") {
+        if (!isInt(lhs) || !isInt(rhs)) {
+          error("operands of bitwise operation must be integer");
+        }
+        if (lhs->kind == TypeKind::UNTYPED_INT &&
+            rhs->kind == TypeKind::UNTYPED_INT) {
+          bin->t = type_i32;
+          break;
+        }
+        if (lhs == rhs) {
+          bin->t = lhs;
+          break;
+        }
+        if (numOrder(lhs) >= numOrder(rhs)) {
+          bin->t = lhs;
+          break;
+        }
+      } else if (op == "&&" || op == "||") {
+        if (lhs != type_bool || rhs != type_bool) {
+          error("operands of logical operation must be bool");
+        }
+        bin->t = type_bool;
+        break;
+      } else if (op == ">" || op == "<" || op == ">=" || op == "<=") {
+        if (!isNumeric(lhs) || !isNumeric(rhs)) {
+          error("both sides of comparison must be numeric");
+        }
+        bin->t = type_bool;
+        break;
+      } else if (op == "==") {
+        // TODO should be better
+        if ((isNumeric(lhs) && !isNumeric(rhs)) ||
+            (!isNumeric(lhs) && isNumeric(rhs))) {
+          error("both sides of equality operation must be comparable");
+        }
+        bin->t = type_bool;
+        break;
+      }
     }
-
-    bin->t = lhs;
   } else if (auto *assign = dynamic_cast<AssignExpr *>(node)) {
 
     TypeThing *lhs = assign->left->t;
@@ -73,10 +181,10 @@ void TypeChecker::close(ASTNode *node) {
     if (typ != current_function->returnType) {
       error("wrong return type");
     }
-  } else if (auto *assign = dynamic_cast<AssignStmt *>(node)) {
+  } else if (auto *assign_stmt = dynamic_cast<AssignStmt *>(node)) {
 
-    TypeThing *lhs = assign->type;
-    TypeThing *rhs = assign->value->t;
+    TypeThing *lhs = assign_stmt->type;
+    TypeThing *rhs = assign_stmt->value->t;
 
     assert(lhs != nullptr);
     assert(rhs != nullptr);
@@ -92,7 +200,7 @@ void TypeChecker::close(ASTNode *node) {
       if (lp.pointee->kind != TypeKind::REGIONED &&
           rp.pointee->kind == TypeKind::REGIONED) {
 
-        assign->type = interner->getPointer(rp.pointee);
+        assign_stmt->type = interner->getPointer(rp.pointee);
 
         return;
       }
