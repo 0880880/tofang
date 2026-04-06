@@ -1,4 +1,5 @@
 #include "ast.h"
+#include "include/territory.h"
 #include "lexer.h"
 #include "parser.h"
 #include "symbols.h"
@@ -34,6 +35,16 @@ void typeWalk(ASTNode *node) {
   }
 
   TypeChecker::close(node);
+}
+
+void regionWalk(Territory &territory, ASTNode *node) {
+  territory.open(node);
+
+  for (auto sub : node->walk()) {
+    regionWalk(territory, sub);
+  }
+
+  territory.close(node);
 }
 
 void printAST(ASTNode *node, const string &spacing = "") {
@@ -89,6 +100,10 @@ int main() {
 
   symbolWalk(&p);
   typeWalk(&p);
+
+  Territory territory;
+
+  regionWalk(territory, &p);
 
   return 0;
 }
