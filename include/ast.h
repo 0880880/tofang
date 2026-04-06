@@ -116,6 +116,7 @@ public:
     std::vector<ASTNode *> e;
     e.push_back(func);
     e.insert(e.begin(), args.begin(), args.end());
+    e.insert(e.begin(), typeArgs.begin(), typeArgs.end());
     return e;
   }
 
