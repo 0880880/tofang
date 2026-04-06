@@ -59,6 +59,9 @@ static int numOrder(const TypeThing *t) {
   case TypeKind::I8:
   case TypeKind::U8:
     return 95;
+  case TypeKind::UNTYPED_INT:
+  case TypeKind::UNTYPED_FLOAT:
+    return 90;
   default:
     return 0;
   }
@@ -178,7 +181,9 @@ void TypeChecker::close(ASTNode *node) {
 
     TypeThing *typ = ret->value->t;
 
-    if (typ != current_function->returnType) {
+    if (!(isNumeric(typ) && isNumeric(current_function->returnType) &&
+          numOrder(current_function->returnType) >= numOrder(typ)) &&
+        (typ != current_function->returnType)) {
       error("wrong return type");
     }
   } else if (auto *assign_stmt = dynamic_cast<AssignStmt *>(node)) {
