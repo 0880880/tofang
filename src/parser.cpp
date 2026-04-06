@@ -1,7 +1,6 @@
 #include "parser.h"
 #include "ast.h"
 #include "type.h"
-#include <iostream>
 #include <optional>
 #include <stdexcept>
 #include <string>
