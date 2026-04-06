@@ -1,5 +1,6 @@
 #include "territory.h"
 #include "ast.h"
+#include <iostream>
 #include <stdexcept>
 
 using namespace std;
@@ -16,28 +17,54 @@ bool Region::outlives(const Region *o) const {
 }
 
 Decl *getDecl(Expr *expr, bool required = false) {
+  while (expr) {
 
-  if (auto *v = dynamic_cast<VariableExpr *>(expr)) {
-    return v->decl;
+    if (auto *v = dynamic_cast<VariableExpr *>(expr))
+      return v->decl;
+
+    if (auto *a = dynamic_cast<AttribExpr *>(expr)) {
+      expr = a->foo;
+      continue;
+    }
+
+    if (auto *i = dynamic_cast<IndexExpr *>(expr)) {
+      expr = i->arr;
+      continue;
+    }
+
+    break;
   }
 
-  if (auto *a = dynamic_cast<AttribExpr *>(expr)) {
-    return getDecl(a->foo);
-  }
-
-  if (auto *i = dynamic_cast<IndexExpr *>(expr)) {
-    return getDecl(i->arr);
-  }
-
-  if (required) {
+  if (required)
     throw runtime_error("Territory: Unhandled expression.");
-  }
+
   return nullptr;
 }
 
+bool outlives(TypeThing *t, Region *region) {
+  switch (t->kind) {
+  case TypeKind::POINTER:
+    return outlives(std::get<PtrType>(t->data).pointee, region);
+  case TypeKind::REFERENCE:
+    return outlives(std::get<RefType>(t->data).referee, region);
+  case TypeKind::REGIONED: {
+    auto &d = std::get<RegionedType>(t->data);
+    if (d.region->region->outlives(region)) {
+      return outlives(d.base, region);
+    }
+    return false;
+  }
+  default:
+    return true;
+  }
+}
+
 void Territory::open(ASTNode *node) {
-  if (dynamic_cast<FuncStmt *>(node) || dynamic_cast<RegionStmt *>(node)) {
+  if (dynamic_cast<FuncStmt *>(node)) {
     regions.push_back({&regions.back()});
+  } else if (auto *reg = dynamic_cast<RegionStmt *>(node)) {
+    regions.push_back({&regions.back()});
+    reg->decl->region = &regions.back();
   } else if (auto *assign = dynamic_cast<AssignStmt *>(node)) {
     assign->region = &regions.back();
 
@@ -52,10 +79,9 @@ void Territory::close(ASTNode *node) {
     regions.pop_back();
   } else if (auto *assign = dynamic_cast<AssignExpr *>(node)) {
     Decl *ld = getDecl(assign->left, true);
-    Decl *rd = getDecl(assign->right);
-    if (ld && rd && !rd->region->outlives(ld->region)) {
-      throw runtime_error("Territory: " + rd->name.value +
-                          " does not outlive " + ld->name.value + ".");
+
+    if (!outlives(assign->right->t, ld->region)) {
+      throw runtime_error("Territory: RHS does not outlive " + ld->name.value);
     }
   }
 }
