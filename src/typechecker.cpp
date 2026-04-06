@@ -172,11 +172,27 @@ void TypeChecker::close(ASTNode *node) {
     TypeThing *lhs = assign->left->t;
     TypeThing *rhs = assign->right->t;
 
-    if (lhs != rhs) {
-      error("type mismatch in assignment");
+    assert(lhs != nullptr);
+    assert(rhs != nullptr);
+
+    if (lhs == rhs) {
+      return;
     }
 
-    assign->t = lhs;
+    if (lhs->kind == TypeKind::POINTER && rhs->kind == TypeKind::POINTER) {
+      auto lp = std::get<PtrType>(lhs->data);
+      auto rp = std::get<PtrType>(rhs->data);
+
+      if (lp.pointee->kind != TypeKind::REGIONED &&
+          rp.pointee->kind == TypeKind::REGIONED) {
+
+        assign->t = interner->getPointer(rp.pointee);
+
+        return;
+      }
+    }
+
+    error("assignment type mismatch");
   } else if (auto *ret = dynamic_cast<ReturnStmt *>(node)) {
 
     TypeThing *typ = ret->value->t;
