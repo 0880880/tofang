@@ -16,6 +16,7 @@ src = files(
   'src/lexer.cpp',
   'src/parser.cpp',
   'src/symbols.cpp',
+  'src/territory.cpp',
   'src/type.cpp',
   'src/typechecker.cpp',
   'main.cpp',
