@@ -1,5 +1,6 @@
 #pragma once
 
+#include "decl_type.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -37,7 +38,7 @@ struct TypeThing;
 
 struct RegionedType {
   TypeThing *base;
-  uint32_t regionID;
+  Decl *region;
 };
 
 struct PtrType {
@@ -70,10 +71,6 @@ struct VarType {
   std::string name;
 };
 
-struct RegionType {
-  uint32_t id;
-};
-
 struct GenericFuncType {
   std::vector<TypeThing *> type_params;
   std::vector<TypeThing *> params;
@@ -82,7 +79,7 @@ struct GenericFuncType {
 
 using TypeData =
     std::variant<RegionedType, PtrType, RefType, ArrType, StructType, FuncType,
-                 MetaType, VarType, RegionType, GenericFuncType>;
+                 MetaType, VarType, GenericFuncType>;
 
 struct TypeThing {
   TypeKind kind;
@@ -98,7 +95,7 @@ struct TypeKey {
   TypeThing *b = nullptr;
 
   size_t length = 0;
-  uint32_t region = 0;
+  Decl *region = nullptr;
 
   std::string name;
 
@@ -106,22 +103,27 @@ struct TypeKey {
   std::vector<TypeThing *> params_b;
 };
 
+inline void hashCombine(size_t &h, size_t v) {
+  h ^= v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+}
+
 struct TypeKeyHash {
   size_t operator()(TypeKey const &k) const {
-    size_t h = std::hash<int>()(static_cast<int>(k.kind));
+    size_t h = 0;
 
-    h ^= std::hash<void *>()(k.a) << 1;
-    h ^= std::hash<void *>()(k.b) << 2;
-    h ^= std::hash<size_t>()(k.length) << 3;
-    h ^= std::hash<uint32_t>()(k.region) << 4;
-    h ^= std::hash<std::string>()(k.name) << 5;
+    hashCombine(h, std::hash<int>{}(static_cast<int>(k.kind)));
+    hashCombine(h, std::hash<void *>{}(k.a));
+    hashCombine(h, std::hash<void *>{}(k.b));
+    hashCombine(h, std::hash<size_t>{}(k.length));
+    hashCombine(h, std::hash<void *>{}(k.region));
+    hashCombine(h, std::hash<std::string>{}(k.name));
 
-    for (auto param : k.params) {
-      h ^= std::hash<void *>()(param) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    for (auto p : k.params) {
+      hashCombine(h, std::hash<void *>{}(p));
     }
 
-    for (auto param : k.params_b) {
-      h ^= std::hash<void *>()(param) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    for (auto p : k.params_b) {
+      hashCombine(h, std::hash<void *>{}(p));
     }
 
     return h;
@@ -157,9 +159,7 @@ class TypeInterner {
   std::unordered_map<TypeKey, TypeThing *, TypeKeyHash, TypeKeyEq> table;
 
 public:
-  TypeThing *getRegion(uint32_t regionID);
-
-  TypeThing *getRegioned(TypeThing *base, uint32_t regionID);
+  TypeThing *getRegioned(TypeThing *base, Decl *region);
 
   TypeThing *getPointer(TypeThing *pointee);
 
@@ -199,3 +199,5 @@ extern TypeThing *type_i32;
 extern TypeThing *type_i64;
 extern TypeThing *type_f32;
 extern TypeThing *type_f64;
+
+extern TypeThing *type_region;

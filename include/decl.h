@@ -1,10 +1,10 @@
 #pragma once
 
+#include "decl_type.h"
 #include "lexer.h"
 #include "type.h"
 #include <cstdint>
 #include <deque>
-#include <map>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -18,8 +18,6 @@ enum class DeclKind : uint8_t {
   REGION,
   CLASS
 };
-
-struct Decl;
 
 struct VarDecl {
   TypeThing *type;
@@ -36,11 +34,7 @@ struct StructDecl {
   std::vector<std::string> fieldNames;
 };
 
-struct RegionDecl {
-  uint32_t id;
-};
-
-using DeclData = std::variant<VarDecl, FuncDecl, StructDecl, RegionDecl>;
+using DeclData = std::variant<VarDecl, FuncDecl, StructDecl>;
 
 struct Decl {
   DeclKind kind;
