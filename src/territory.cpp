@@ -36,9 +36,7 @@ Decl *getDecl(Expr *expr, bool required = false) {
 }
 
 void Territory::open(ASTNode *node) {
-  if (auto *_ = dynamic_cast<FuncStmt *>(node)) {
-    regions.push_back({&regions.back()});
-  } else if (auto *_ = dynamic_cast<RegionStmt *>(node)) {
+  if (dynamic_cast<FuncStmt *>(node) || dynamic_cast<RegionStmt *>(node)) {
     regions.push_back({&regions.back()});
   } else if (auto *assign = dynamic_cast<AssignStmt *>(node)) {
     assign->region = &regions.back();
@@ -50,9 +48,7 @@ void Territory::open(ASTNode *node) {
 }
 
 void Territory::close(ASTNode *node) {
-  if (auto *_ = dynamic_cast<FuncStmt *>(node)) {
-    regions.pop_back();
-  } else if (auto *_ = dynamic_cast<RegionStmt *>(node)) {
+  if (dynamic_cast<FuncStmt *>(node) || dynamic_cast<RegionStmt *>(node)) {
     regions.pop_back();
   } else if (auto *assign = dynamic_cast<AssignExpr *>(node)) {
     Decl *ld = getDecl(assign->left, true);
