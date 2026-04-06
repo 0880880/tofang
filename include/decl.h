@@ -2,13 +2,22 @@
 
 #include "lexer.h"
 #include "type.h"
+#include <cstdint>
 #include <deque>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
 
-enum class DeclKind : uint8_t { VAR, FUNC, STRUCT, REGION, CLASS };
+enum class DeclKind : uint8_t {
+  VAR,
+  FUNC,
+  GENERIC_FUNC,
+  STRUCT,
+  REGION,
+  CLASS
+};
 
 struct Decl;
 
@@ -17,6 +26,7 @@ struct VarDecl {
 };
 
 struct FuncDecl {
+  std::vector<TypeThing *> genericParams;
   std::vector<Decl *> params;
   TypeThing *returnType;
 };

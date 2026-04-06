@@ -31,7 +31,7 @@ public:
   Type type;
 
   Lexer::Token value;
-  TypeThing *typeValue;
+  TypeThing *typeValue = nullptr;
 
   LiteralExpr(Type type, Lexer::Token value)
       : type(type), value(std::move(value)) {}
@@ -57,9 +57,9 @@ public:
 
 class BinaryExpr : public Expr {
 public:
-  Expr *left;
+  Expr *left = nullptr;
   Lexer::Token op;
-  Expr *right;
+  Expr *right = nullptr;
 
   BinaryExpr(Expr *left, Lexer::Token op, Expr *right)
       : left(left), op(std::move(op)), right(right) {}
@@ -72,7 +72,7 @@ public:
 class UnaryExpr : public Expr {
 public:
   Lexer::Token op;
-  Expr *right;
+  Expr *right = nullptr;
 
   UnaryExpr(Lexer::Token op, Expr *right) : op(std::move(op)), right(right) {}
 
@@ -83,7 +83,7 @@ public:
 
 class GroupingExpr : public Expr {
 public:
-  Expr *expression;
+  Expr *expression = nullptr;
 
   GroupingExpr(Expr *expression) : expression(expression) {}
 
@@ -95,7 +95,7 @@ public:
 class VariableExpr : public Expr {
 public:
   Lexer::Token name;
-  Decl *decl;
+  Decl *decl = nullptr;
 
   VariableExpr(Lexer::Token name) : name(std::move(name)) {}
 
@@ -106,7 +106,7 @@ public:
 
 class CallExpr : public Expr {
 public:
-  Expr *func;
+  Expr *func = nullptr;
   vector<Expr *> typeArgs;
   vector<Expr *> args;
 
@@ -119,13 +119,22 @@ public:
     return e;
   }
 
-  string toString() override { return "CallExpr"; }
+  string toString() override {
+    string buf = "";
+    for (size_t i = 0; i < typeArgs.size(); i++) {
+      if (typeArgs.size() - 1 - i) {
+        buf += ", ";
+      }
+      buf += typeArgs[i]->toString();
+    }
+    return "CallExpr<" + buf + ">";
+  }
 };
 
 class IndexExpr : public Expr {
 public:
-  Expr *arr;
-  Expr *i;
+  Expr *arr = nullptr;
+  Expr *i = nullptr;
 
   IndexExpr(Expr *arr, Expr *i) : arr(arr), i(i) {}
 
@@ -136,8 +145,8 @@ public:
 
 class UpdateExpr : public Expr {
 public:
-  Expr *obj;
-  Expr *value;
+  Expr *obj = nullptr;
+  Expr *value = nullptr;
 
   UpdateExpr(Expr *obj, Expr *value) : obj(obj), value(value) {}
 
@@ -153,10 +162,10 @@ public:
 
 class AssignStmt : public Stmt {
 public:
-  TypeThing *type;
+  TypeThing *type = nullptr;
   Lexer::Token name;
-  Expr *value;
-  Decl *decl;
+  Expr *value = nullptr;
+  Decl *decl = nullptr;
 
   AssignStmt(TypeThing *type, Lexer::Token name, Expr *value)
       : type(type), name(std::move(name)), value(value) {}
@@ -170,7 +179,7 @@ public:
 
 class ExprStmt : public Stmt {
 public:
-  Expr *expression;
+  Expr *expression = nullptr;
 
   ExprStmt(Expr *expression) : expression(expression) {}
 
@@ -198,13 +207,14 @@ public:
 
 class FuncStmt : public Stmt {
 public:
-  TypeThing *returnType;
+  TypeThing *returnType = nullptr;
   Lexer::Token name;
+  bool generic = false;
   vector<TypeThing *> genericParams;
   vector<TypeThing *> paramTypes;
   vector<Lexer::Token> paramNames;
   BlockStmt body;
-  Decl *decl;
+  Decl *decl = nullptr;
 
   FuncStmt(TypeThing *returnType, Lexer::Token name)
       : returnType(returnType), name(std::move(name)) {}
@@ -212,25 +222,52 @@ public:
   std::vector<ASTNode *> walk() override { return {&body}; }
 
   string toString() override {
-    return "FuncStmt<" + returnType->toString() + " " + name.value + ">";
+    string buf = "";
+    for (size_t i = 0; i < genericParams.size(); i++) {
+      if (genericParams.size() - 1 - i) {
+        buf += ", ";
+      }
+      buf += genericParams[i]->toString();
+    }
+    return "FuncStmt<" + buf + "> <" + returnType->toString() + " " +
+           name.value + ">";
   }
 };
 
 class ReturnStmt : public Stmt {
 public:
-  Expr *value;
+  Expr *value = nullptr;
 
   std::vector<ASTNode *> walk() override { return {value}; }
 
   string toString() override { return "ReturnStmt"; }
 };
 
+class StructStmt : public Stmt {
+public:
+  std::vector<TypeThing *> types;
+  std::vector<Lexer::Token> names;
+
+  std::vector<ASTNode *> walk() override { return {}; }
+
+  string toString() override {
+    std::string defs = "";
+    for (size_t i = 0; i < types.size(); ++i) {
+      defs += types[i]->toString();
+      defs += " ";
+      defs += names[i].value;
+      defs += "; ";
+    }
+    return "Struct{ " + defs + "}";
+  }
+};
+
 class IfStmt : public Stmt {
 public:
-  Expr *condition;
+  Expr *condition = nullptr;
   BlockStmt body;
-  IfStmt *elseIf;
-  BlockStmt *elseBody;
+  IfStmt *elseIf = nullptr;
+  BlockStmt *elseBody = nullptr;
 
   std::vector<ASTNode *> walk() override {
     return {condition, &body, elseIf, elseBody};
@@ -241,9 +278,9 @@ public:
 
 class ForStmt : public Stmt {
 public:
-  Stmt *init;
-  Expr *condition;
-  Expr *update;
+  Stmt *init = nullptr;
+  Expr *condition = nullptr;
+  Expr *update = nullptr;
   BlockStmt body;
 
   std::vector<ASTNode *> walk() override {
@@ -260,7 +297,7 @@ private:
 public:
   Lexer::Token name;
   BlockStmt body;
-  Decl *decl;
+  Decl *decl = nullptr;
 
   uint32_t id;
 
@@ -273,7 +310,7 @@ public:
 
 class AttribExpr : public Expr {
 public:
-  Expr *foo;
+  Expr *foo = nullptr;
   Lexer::Token bar;
 
   AttribExpr(Expr *foo, Lexer::Token bar) : foo(foo), bar(std::move(bar)) {}

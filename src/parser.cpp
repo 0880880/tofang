@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "ast.h"
 #include "type.h"
+#include <iostream>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -222,6 +223,31 @@ Expr *postfix(Ptr &p) {
       auto ind = new IndexExpr(left, expr(p));
       p.expect("RBRACKET");
       left = ind;
+    } else if (p.isV("<")) {
+      ++p;
+      auto c = new CallExpr(left);
+      bool start = true;
+      while (start || p.is("COMMA")) {
+        if (p.isV(">")) {
+          break;
+        }
+        start = false;
+        auto l = new LiteralExpr(LiteralExpr::Type::MetaType, *p);
+        l->typeValue = *type(p);
+        c->typeArgs.push_back(l);
+      }
+      ++p;
+      p.expect("LPAREN");
+      start = true;
+      while (start || p.is("COMMA")) {
+        if (p.is("RPAREN")) {
+          break;
+        }
+        start = false;
+        c->args.push_back(expr(p));
+      }
+      ++p;
+      left = c;
     } else if (p.is("LPAREN")) {
       bool start = true;
       auto c = new CallExpr(left);
@@ -338,6 +364,7 @@ Stmt *statement(Ptr &p) {
     if (p.isV("<")) {
       ++p;
       auto *fn = new FuncStmt(t, name);
+      fn->generic = true;
       bool start = true;
       while (start || p.is("COMMA")) {
         if (p.isV(">")) {
@@ -349,6 +376,7 @@ Stmt *statement(Ptr &p) {
         fn->genericParams.push_back(interner->getTypeVar(v.value));
       }
       ++p;
+      p.expect("LPAREN");
       p.expect("RPAREN");
       p.expect("LBRACE");
 

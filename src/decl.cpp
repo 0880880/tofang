@@ -1,7 +1,6 @@
 #include "decl.h"
 #include "type.h"
 #include <algorithm>
-#include <iostream>
 
 using namespace std;
 
@@ -18,6 +17,13 @@ TypeThing *Decl::toType() {
     std::ranges::transform(f.params, p.begin(),
                            [](Decl *x) { return x->toType(); });
     return interner->getFunction(p, f.returnType);
+  }
+  case DeclKind::GENERIC_FUNC: {
+    FuncDecl f = std::get<FuncDecl>(data);
+    std::vector<TypeThing *> p(f.params.size());
+    std::ranges::transform(f.params, p.begin(),
+                           [](Decl *x) { return x->toType(); });
+    return interner->getGenericFunction(f.genericParams, p, f.returnType);
   }
   case DeclKind::REGION: {
     return interner->getRegion(std::get<RegionDecl>(data).id);

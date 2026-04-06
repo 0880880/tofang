@@ -2,7 +2,9 @@
 #include "ast.h"
 #include "decl.h"
 #include "type.h"
+#include <cassert>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 using namespace std;
@@ -39,6 +41,8 @@ void TypeChecker::close(ASTNode *node) {
     case LiteralExpr::MetaType:
       lit->t = interner->getMeta(lit->typeValue);
       break;
+    case LiteralExpr::String:
+      throw runtime_error("Unhandeled String literal");
     }
   } else if (auto *var = dynamic_cast<VariableExpr *>(node)) {
     var->t = var->decl->toType();
@@ -64,12 +68,14 @@ void TypeChecker::close(ASTNode *node) {
     TypeThing *lhs = assign->type;
     TypeThing *rhs = assign->value->t;
 
-    if (lhs == rhs) { // L67
+    assert(lhs != nullptr);
+    assert(rhs != nullptr);
+
+    if (lhs == rhs) {
       return;
     }
 
-    if (lhs->kind == TypeKind::POINTER &&
-        rhs->kind == TypeKind::POINTER) { // L71
+    if (lhs->kind == TypeKind::POINTER && rhs->kind == TypeKind::POINTER) {
       auto lp = std::get<PtrType>(lhs->data);
       auto rp = std::get<PtrType>(rhs->data);
 
@@ -110,9 +116,66 @@ void TypeChecker::close(ASTNode *node) {
         cal->t = interner->getPointer(interner->getRegioned(
             allocated, std::get<RegionType>(region_type->data).id));
 
-        cout << "Wat? " << cal->t->toString() << "\n";
         return;
       }
+    }
+
+    if (cal->func->t->kind == TypeKind::FUNCTION) {
+      FuncType f = std::get<FuncType>(cal->func->t->data);
+      if (f.params.size() != cal->args.size()) {
+        error("Function call argument size mismatch: Expected " +
+              to_string(f.params.size()) + " got " +
+              to_string(cal->args.size()) + " instead.");
+      }
+      for (size_t i = 0; i < f.params.size(); ++i) {
+        if (f.params[i] != cal->args[i]->t) {
+          error("Function argument type mismatch: Got " +
+                cal->args[i]->t->toString() + " instead of " +
+                f.params[i]->toString() + ".");
+        }
+      }
+      cal->t = f.return_type;
+      return;
+    } else if (cal->func->t->kind == TypeKind::GENERIC_FUNC) {
+      GenericFuncType g = std::get<GenericFuncType>(cal->func->t->data);
+      if (g.params.size() != cal->args.size()) {
+        error("Function call argument size mismatch: Expected " +
+              to_string(g.params.size()) + " got " +
+              to_string(cal->args.size()) + " instead.");
+      }
+      if (g.type_params.size() != cal->typeArgs.size()) {
+        error("Function call generic arguments size mismatch: Expected " +
+              to_string(g.type_params.size()) + " got " +
+              to_string(cal->typeArgs.size()) + " instead.");
+      }
+      std::unordered_map<TypeKey, TypeThing *, TypeKeyHash, TypeKeyEq> subst;
+      for (size_t i = 0; i < g.type_params.size(); ++i) {
+        if (cal->typeArgs[i]->t->kind != TypeKind::META) {
+          error("Function call generic arguments must be types.");
+        }
+        TypeKey k = {};
+        k.kind = TypeKind::TYPE_VAR;
+        k.name = std::get<VarType>(g.type_params[i]->data).name;
+
+        subst[k] = dynamic_cast<LiteralExpr *>(cal->typeArgs[i])->typeValue;
+      }
+      std::vector<TypeThing *> params = {};
+      params.reserve(g.params.size());
+      for (TypeThing *p : g.params) {
+        params.push_back(interner->substitute(p, subst));
+      }
+      FuncType f = {.params = params,
+                    .return_type = interner->substitute(g.return_type, subst)};
+      for (size_t i = 0; i < f.params.size(); ++i) {
+        if (f.params[i] != cal->args[i]->t) {
+          error("Function argument type mismatch: Got " +
+                cal->args[i]->t->toString() + " instead of " +
+                f.params[i]->toString() + ".");
+        }
+      }
+      cal->t = f.return_type;
+    } else {
+      error("Cannot call non-function type");
     }
   }
 }

@@ -13,10 +13,14 @@ static void error(const string &msg) {
 
 void Symbols::walkAstOpen(ASTNode *node) {
   if (auto f = dynamic_cast<FuncStmt *>(node)) {
-    auto scope = declarations.back();
+    auto &scope = declarations.back();
     declarations.emplace_back();
     FuncDecl fd = {};
+    for (auto generic_param : f->genericParams) {
+      fd.genericParams.push_back(generic_param);
+    }
     fd.returnType = f->returnType;
+
     for (size_t i = 0; i < f->paramNames.size(); ++i) {
       auto name = f->paramNames[i];
       auto decl = new Decl{.kind = DeclKind::VAR,
@@ -25,7 +29,10 @@ void Symbols::walkAstOpen(ASTNode *node) {
       declarations.back()[name.value] = decl;
       fd.params.push_back(decl);
     }
-    f->decl = new Decl{.kind = DeclKind::FUNC, .name = f->name, .data = fd};
+    f->decl =
+        new Decl{.kind = f->generic ? DeclKind::GENERIC_FUNC : DeclKind::FUNC,
+                 .name = f->name,
+                 .data = fd};
     scope[f->name.value] = f->decl;
   } else if (auto a = dynamic_cast<AssignStmt *>(node)) {
     a->decl = new Decl{

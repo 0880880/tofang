@@ -39,7 +39,7 @@ string TypeThing::toString() {
     return r.base->toString() + "@R" + to_string(r.regionID);
   }
   case TypeKind::TYPE_VAR:
-    return "<" + std::get<VarType>(data).name + ">";
+    return std::get<VarType>(data).name;
   case TypeKind::FUNCTION: {
     FuncType f = std::get<FuncType>(data);
     return f.return_type->toString() + " func()";
@@ -166,6 +166,30 @@ TypeThing *TypeInterner::getFunction(const std::vector<TypeThing *> &params,
   return t;
 }
 
+TypeThing *
+TypeInterner::getGenericFunction(const std::vector<TypeThing *> &type_params,
+                                 const std::vector<TypeThing *> &params,
+                                 TypeThing *returnType) {
+  TypeKey key{};
+  key.kind = TypeKind::FUNCTION;
+  key.params = params;
+  key.params_b = type_params;
+  key.a = returnType;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::GENERIC_FUNC,
+                          .data = GenericFuncType{.type_params = type_params,
+                                                  .params = params,
+                                                  .return_type = returnType}};
+
+  table[key] = t;
+  return t;
+}
+
 TypeThing *TypeInterner::getMeta(TypeThing *inside) {
   TypeKey key{};
   key.kind = TypeKind::META;
@@ -196,6 +220,42 @@ TypeThing *TypeInterner::getTypeVar(const string &name) {
 
   table[key] = t;
   return t;
+}
+
+TypeThing *TypeInterner::substitute(
+    TypeThing *t,
+    std::unordered_map<TypeKey, TypeThing *, TypeKeyHash, TypeKeyEq> &subst) {
+  switch (t->kind) {
+  case TypeKind::TYPE_VAR: {
+    TypeKey k = {.kind = TypeKind::TYPE_VAR,
+                 .a = nullptr,
+                 .b = nullptr,
+                 .length = 0,
+                 .region = 0,
+                 .name = std::get<VarType>(t->data).name,
+                 .params = {}};
+    return subst[k];
+  }
+  case TypeKind::POINTER:
+    return getPointer(substitute(std::get<PtrType>(t->data).pointee, subst));
+  case TypeKind::REFERENCE:
+    return getReference(substitute(std::get<RefType>(t->data).referee, subst));
+  case TypeKind::ARRAY: {
+    ArrType arr = std::get<ArrType>(t->data);
+    return getArray(substitute(arr.element, subst), arr.length);
+  }
+  case TypeKind::FUNCTION: {
+    FuncType f = std::get<FuncType>(t->data);
+    std::vector<TypeThing *> params = {};
+    params.reserve(f.params.size());
+    for (TypeThing *p : f.params) {
+      params.push_back(substitute(p, subst));
+    }
+    return getFunction(params, substitute(f.return_type, subst));
+  }
+  default:
+    return t;
+  }
 }
 
 static TypeInterner interner_obj;

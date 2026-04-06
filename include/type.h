@@ -30,7 +30,7 @@ enum class TypeKind : uint8_t {
   REGIONED,
   META,
   TYPE_VAR,
-  GENERIC_FUNCTION,
+  GENERIC_FUNC
 };
 
 struct TypeThing;
@@ -103,6 +103,7 @@ struct TypeKey {
   std::string name;
 
   std::vector<TypeThing *> params;
+  std::vector<TypeThing *> params_b;
 };
 
 struct TypeKeyHash {
@@ -119,6 +120,10 @@ struct TypeKeyHash {
       h ^= std::hash<void *>()(param) + 0x9e3779b9 + (h << 6) + (h >> 2);
     }
 
+    for (auto param : k.params_b) {
+      h ^= std::hash<void *>()(param) + 0x9e3779b9 + (h << 6) + (h >> 2);
+    }
+
     return h;
   }
 };
@@ -127,12 +132,19 @@ struct TypeKeyEq {
   bool operator()(TypeKey const &a, TypeKey const &b) const {
     if (a.kind != b.kind || a.a != b.a || a.b != b.b || a.length != b.length ||
         a.region != b.region || a.name != b.name ||
-        a.params.size() != b.params.size()) {
+        a.params.size() != b.params.size() ||
+        a.params_b.size() != b.params_b.size()) {
       return false;
     }
 
     for (size_t i = 0; i < a.params.size(); i++) {
       if (a.params[i] != b.params[i]) {
+        return false;
+      }
+    }
+
+    for (size_t i = 0; i < a.params_b.size(); i++) {
+      if (a.params_b[i] != b.params_b[i]) {
         return false;
       }
     }
@@ -158,9 +170,17 @@ public:
   TypeThing *getFunction(const std::vector<TypeThing *> &params,
                          TypeThing *returnType);
 
+  TypeThing *getGenericFunction(const std::vector<TypeThing *> &type_params,
+                                const std::vector<TypeThing *> &params,
+                                TypeThing *returnType);
+
   TypeThing *getMeta(TypeThing *t);
 
   TypeThing *getTypeVar(const std::string &name);
+
+  TypeThing *substitute(
+      TypeThing *t,
+      std::unordered_map<TypeKey, TypeThing *, TypeKeyHash, TypeKeyEq> &subst);
 };
 
 extern TypeInterner *interner;
