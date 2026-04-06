@@ -20,7 +20,7 @@ public:
 
 class Expr : public ASTNode {
 public:
-  TypeThing *t;
+  TypeThing *t = nullptr;
   ~Expr() override = default;
 };
 
