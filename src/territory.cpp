@@ -1,6 +1,5 @@
 #include "territory.h"
 #include "ast.h"
-#include <iostream>
 #include <stdexcept>
 
 using namespace std;
@@ -19,8 +18,9 @@ bool Region::outlives(const Region *o) const {
 Decl *getDecl(Expr *expr, bool required = false) {
   while (expr) {
 
-    if (auto *v = dynamic_cast<VariableExpr *>(expr))
+    if (auto *v = dynamic_cast<VariableExpr *>(expr)) {
       return v->decl;
+    }
 
     if (auto *a = dynamic_cast<AttribExpr *>(expr)) {
       expr = a->foo;
@@ -35,8 +35,9 @@ Decl *getDecl(Expr *expr, bool required = false) {
     break;
   }
 
-  if (required)
+  if (required) {
     throw runtime_error("Territory: Unhandled expression.");
+  }
 
   return nullptr;
 }
