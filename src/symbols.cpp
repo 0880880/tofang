@@ -25,22 +25,28 @@ void Symbols::walkAstOpen(ASTNode *node) {
       auto name = f->paramNames[i];
       auto decl = new Decl{.kind = DeclKind::VAR,
                            .name = name,
-                           .data = VarDecl{f->paramTypes[i]}};
+                           .data = VarDecl{f->paramTypes[i]},
+                           .region = nullptr};
       declarations.back()[name.value] = decl;
       fd.params.push_back(decl);
     }
     f->decl =
         new Decl{.kind = f->generic ? DeclKind::GENERIC_FUNC : DeclKind::FUNC,
                  .name = f->name,
-                 .data = fd};
+                 .data = fd,
+                 .region = nullptr};
     scope[f->name.value] = f->decl;
   } else if (auto a = dynamic_cast<AssignStmt *>(node)) {
-    a->decl = new Decl{
-        .kind = DeclKind::VAR, .name = a->name, .data = VarDecl{a->type}};
+    a->decl = new Decl{.kind = DeclKind::VAR,
+                       .name = a->name,
+                       .data = VarDecl{a->type},
+                       .region = nullptr};
     declarations.back()[a->name.value] = a->decl;
   } else if (auto r = dynamic_cast<RegionStmt *>(node)) {
-    r->decl = new Decl{
-        .kind = DeclKind::REGION, .name = r->name, .data = RegionDecl{r->id}};
+    r->decl = new Decl{.kind = DeclKind::REGION,
+                       .name = r->name,
+                       .data = {},
+                       .region = nullptr};
     declarations.back()[r->name.value] = r->decl;
   } else if (dynamic_cast<BlockStmt *>(node)) {
     declarations.emplace_back();
