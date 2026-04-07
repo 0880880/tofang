@@ -274,6 +274,7 @@ public:
 
 class StructStmt : public Stmt {
 public:
+  Lexer::Token name;
   std::vector<TypeThing *> types;
   std::vector<Lexer::Token> names;
   std::vector<Expr *> definitions;
