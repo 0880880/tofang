@@ -1,6 +1,7 @@
 #include "typechecker.h"
 #include "ast.h"
 #include "decl.h"
+#include "territory_ast.h"
 #include "type.h"
 #include <cassert>
 #include <iostream>
@@ -9,6 +10,17 @@
 #include <utility>
 
 using namespace std;
+
+bool Region::outlives(const Region *o) const {
+  const Region *current = o;
+  while (current) {
+    if (current == this) {
+      return true;
+    }
+    current = current->parent;
+  }
+  return false;
+}
 
 static FuncStmt *current_function = nullptr;
 
@@ -179,20 +191,33 @@ void TypeChecker::close(ASTNode *node) {
       return;
     }
 
-    if (lhs->kind == TypeKind::POINTER && rhs->kind == TypeKind::POINTER) {
-      auto lp = std::get<PtrType>(lhs->data);
-      auto rp = std::get<PtrType>(rhs->data);
+    TypeThing *l = lhs;
+    TypeThing *r = rhs;
+    while (true) {
+      if (l->kind == TypeKind::REGIONED && r->kind == TypeKind::REGIONED) {
+        auto &ld = std::get<RegionedType>(l->data);
+        auto &rd = std::get<RegionedType>(r->data);
 
-      if (lp.pointee->kind != TypeKind::REGIONED &&
-          rp.pointee->kind == TypeKind::REGIONED) {
-
-        assign->t = interner->getPointer(rp.pointee);
-
-        return;
+        if (!rd.region->region->outlives(ld.region->region)) {
+          error("Territory: region of RHS does not outlive the region of LHS.");
+        }
+        l = ld.base;
+        r = rd.base;
+      } else if (l != r) {
+        error("assignment type mismatch");
+      } else if (l->kind == TypeKind::POINTER) {
+        l = std::get<PtrType>(l->data).pointee;
+        r = std::get<PtrType>(r->data).pointee;
+      } else if (l->kind == TypeKind::REFERENCE) {
+        l = std::get<RefType>(l->data).referee;
+        r = std::get<RefType>(r->data).referee;
+      } else {
+        break;
       }
     }
 
-    error("assignment type mismatch");
+    assign->t = rhs;
+
   } else if (auto *ret = dynamic_cast<ReturnStmt *>(node)) {
 
     TypeThing *typ = ret->value->t;
@@ -214,20 +239,34 @@ void TypeChecker::close(ASTNode *node) {
       return;
     }
 
-    if (lhs->kind == TypeKind::POINTER && rhs->kind == TypeKind::POINTER) {
-      auto lp = std::get<PtrType>(lhs->data);
-      auto rp = std::get<PtrType>(rhs->data);
+    TypeThing *l = lhs;
+    TypeThing *r = rhs;
+    while (true) {
+      if (l->kind == TypeKind::REGIONED && r->kind == TypeKind::REGIONED) {
+        auto &ld = std::get<RegionedType>(l->data);
+        auto &rd = std::get<RegionedType>(r->data);
 
-      if (lp.pointee->kind != TypeKind::REGIONED &&
-          rp.pointee->kind == TypeKind::REGIONED) {
-
-        assign_stmt->type = interner->getPointer(rp.pointee);
-
-        return;
+        if (!rd.region->region->outlives(ld.region->region)) {
+          error("Territory: region of RHS does not outlive the region of LHS.");
+        }
+        l = ld.base;
+        r = rd.base;
+      } else if (l != r) {
+        error("assignment type mismatch");
+      } else if (l->kind == TypeKind::POINTER) {
+        l = std::get<PtrType>(l->data).pointee;
+        r = std::get<PtrType>(r->data).pointee;
+      } else if (l->kind == TypeKind::REFERENCE) {
+        l = std::get<RefType>(l->data).referee;
+        r = std::get<RefType>(r->data).referee;
+      } else {
+        break;
       }
     }
 
-    error("assignment type mismatch");
+    assign->t = rhs;
+    assign->left->t = rhs;
+
   } else if (auto cal = dynamic_cast<CallExpr *>(node)) {
 
     if (auto *att = dynamic_cast<AttribExpr *>(cal->func)) {

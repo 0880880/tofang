@@ -99,11 +99,12 @@ int main() {
   printAST(&p);
 
   symbolWalk(&p);
-  typeWalk(&p);
 
   Territory territory;
 
   regionWalk(territory, &p);
+
+  typeWalk(&p);
 
   return 0;
 }
