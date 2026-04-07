@@ -332,6 +332,15 @@ void TypeChecker::close(ASTNode *node) {
       return;
     }
 
+    if (isNumeric(lhs) && isNumeric(rhs)) {
+      if (numOrder(lhs) >= numOrder(rhs)) {
+        assign->right->t = lhs;
+      } else {
+        error("assignment type mismatch " + lhs->toString() + " = " +
+              rhs->toString());
+      }
+    }
+
     TypeThing *l = lhs;
     TypeThing *r = rhs;
     while (true) {
@@ -345,7 +354,8 @@ void TypeChecker::close(ASTNode *node) {
         l = ld.base;
         r = rd.base;
       } else if (l != r) {
-        error("assignment type mismatch");
+        error("assignment type mismatch " + lhs->toString() + " = " +
+              rhs->toString());
       } else if (l->kind == TypeKind::POINTER) {
         l = std::get<PtrType>(l->data).pointee;
         r = std::get<PtrType>(r->data).pointee;
@@ -382,6 +392,15 @@ void TypeChecker::close(ASTNode *node) {
 
     if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
       return;
+    }
+
+    if (isNumeric(lhs) && isNumeric(rhs)) {
+      if (numOrder(lhs) >= numOrder(rhs)) {
+        assign->right->t = lhs;
+      } else {
+        error("assignment type mismatch " + lhs->toString() + " = " +
+              rhs->toString());
+      }
     }
 
     TypeThing *l = lhs;
