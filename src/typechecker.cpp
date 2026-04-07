@@ -477,17 +477,27 @@ void TypeChecker::close(ASTNode *node) {
           error("alloc must be called on a region");
         }
 
-        if (cal->args.size() != 1) {
-          error("alloc expects one type argument");
+        if (cal->typeArgs.size() != 1) {
+          error("alloc expects one type argument `foo.alloc<T>([N])`");
         }
 
-        TypeThing *arg = cal->args[0]->t;
+        if (cal->args.size() > 1) {
+          error("alloc expects zero or one argument `foo.alloc<T>([N])`");
+        }
 
-        if (arg->kind != TypeKind::META) {
+        TypeThing *targ = cal->typeArgs[0]->t;
+
+        if (targ->kind != TypeKind::META) {
           error("alloc expects a type");
         }
 
-        TypeThing *allocated = std::get<MetaType>(arg->data).type;
+        if (cal->args.size() == 1) {
+          if (isInt(cal->args[0]->t)) {
+            error("alloc size argument must be an unsigned integer");
+          }
+        }
+
+        TypeThing *allocated = std::get<MetaType>(targ->data).type;
 
         cal->t = interner->getPointer(interner->getRegioned(
             allocated, std::get<RegionType>(region_type->data).region));
