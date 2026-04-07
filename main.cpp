@@ -30,19 +30,6 @@ void symbolWalk(ASTNode *node) {
   Symbols::walkAstClose(node);
 }
 
-void typeWalk(ASTNode *node) {
-  TypeChecker::open(node);
-
-  for (auto sub : node->walk()) {
-    if (!sub) {
-      continue;
-    }
-    typeWalk(sub);
-  }
-
-  TypeChecker::close(node);
-}
-
 void regionWalk(Territory &territory, ASTNode *node) {
   territory.open(node);
 
@@ -115,7 +102,9 @@ int main() {
 
   regionWalk(territory, &p);
 
-  typeWalk(&p);
+  TypeChecker tc;
+
+  tc.walk(&p);
 
   return 0;
 }
