@@ -52,6 +52,9 @@ static RefinementEnv mergeEnvs(RefinementEnv &a, RefinementEnv &b) {
   for (Decl *key : keys) {
     TypeThing *ta = a.lookup(key);
     TypeThing *tb = b.lookup(key);
+    if (!ta || !tb) {
+      continue;
+    }
     if (ta->kind == TypeKind::I_NULL && tb->kind == TypeKind::I_NULL) {
       result.map[key] = type_inull;
     } else if (ta->kind != TypeKind::I_NULL && tb->kind != TypeKind::I_NULL) {
