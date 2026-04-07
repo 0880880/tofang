@@ -124,6 +124,10 @@ optional<TypeThing *> type(Ptr &p) {
       break;
     }
   }
+  if (p.is("QUESTION")) {
+    ++p;
+    t = interner->getNullable(t);
+  }
   return t;
 }
 
