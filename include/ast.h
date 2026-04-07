@@ -284,15 +284,27 @@ public:
   }
 };
 
+class IfStmt;
+
+class ElseStmt : public Stmt {
+public:
+  IfStmt *ifStmt = nullptr;
+  BlockStmt body;
+
+  std::vector<ASTNode *> walk() override { return {&body}; }
+
+  string toString() override { return "ElseStmt"; }
+};
+
 class IfStmt : public Stmt {
 public:
   Expr *condition = nullptr;
   BlockStmt body;
   IfStmt *elseIf = nullptr;
-  BlockStmt *elseBody = nullptr;
+  ElseStmt *elseStmt = nullptr;
 
   std::vector<ASTNode *> walk() override {
-    return {condition, &body, elseIf, elseBody};
+    return {condition, &body, elseIf, elseStmt}; // elseStmt not ASTNode *
   }
 
   string toString() override { return "IfStmt"; }
