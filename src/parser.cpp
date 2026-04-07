@@ -341,6 +341,62 @@ Stmt *statement(Ptr &p) {
     return r;
   }
 
+  if (p.is("KEYWORD") && (*p).value == "if") {
+    ++p;
+    auto *ifs = new IfStmt();
+    p.expect("LPAREN");
+    Expr *condition = expr(p);
+    ifs->condition = condition;
+    p.expect("RPAREN");
+    p.expect("LBRACE");
+
+    while (!p.eof() && !p.is("RBRACE")) {
+      ifs->body.statements.push_back(statement(p));
+    }
+
+    p.expect("RBRACE");
+
+    IfStmt *cur = ifs;
+
+    if (p.isV("else")) {
+      ++p;
+      bool hasElse = true;
+      while (p.isV("if")) {
+        ++p;
+        cur->elseIf = new IfStmt();
+        cur = cur->elseIf;
+        p.expect("LPAREN");
+        cur->condition = expr(p);
+        p.expect("RPAREN");
+        p.expect("LBRACE");
+
+        while (!p.eof() && !p.is("RBRACE")) {
+          cur->body.statements.push_back(statement(p));
+        }
+
+        p.expect("RBRACE");
+        if (p.isV("else")) {
+          ++p;
+        } else {
+          hasElse = false;
+          break;
+        }
+      }
+      if (hasElse) {
+        p.expect("LBRACE");
+        cur->elseStmt = new ElseStmt();
+
+        while (!p.eof() && !p.is("RBRACE")) {
+          cur->elseStmt->body.statements.push_back(statement(p));
+        }
+
+        p.expect("RBRACE");
+      }
+    }
+
+    return ifs;
+  }
+
   if (p.is("KEYWORD") && (*p).value == "region") {
     ++p;
     Lexer::Token name = *p;

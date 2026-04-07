@@ -1,4 +1,6 @@
+- ~If Statements~
 - Nullable Types
+- Escape territory check
 - Structs
 - IR generation
 - More ToDo
