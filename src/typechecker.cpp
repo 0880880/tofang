@@ -402,7 +402,7 @@ void TypeChecker::close(ASTNode *node) {
 
     if (isNumeric(lhs) && isNumeric(rhs)) {
       if (numOrder(lhs) >= numOrder(rhs)) {
-        assign->right->t = lhs;
+        assign_stmt->value->t = lhs;
         rhs = lhs;
       } else {
         error("assignment type mismatch " + lhs->toString() + " = " +
