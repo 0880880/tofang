@@ -329,22 +329,26 @@ void TypeChecker::close(ASTNode *node) {
     assert(lhs != nullptr);
     assert(rhs != nullptr);
 
+    if (isNumeric(lhs) && isNumeric(rhs)) {
+      if (numOrder(lhs) >= numOrder(rhs)) {
+        assign->right->t = lhs;
+        rhs = lhs;
+      } else {
+        error("assignment type mismatch " + lhs->toString() + " = " +
+              rhs->toString());
+      }
+    }
+
+    if (lhs->kind == TypeKind::NULLABLE && rhs->kind != TypeKind::NULLABLE) {
+      rhs = interner->getNullable(rhs);
+    }
+
     if (lhs == rhs) {
       return;
     }
 
     if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
       return;
-    }
-
-    if (isNumeric(lhs) && isNumeric(rhs)) {
-      if (numOrder(lhs) >= numOrder(rhs)) {
-        assign->right->t = lhs;
-        return;
-      } else {
-        error("assignment type mismatch " + lhs->toString() + " = " +
-              rhs->toString());
-      }
     }
 
     TypeThing *l = lhs;
