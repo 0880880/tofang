@@ -124,7 +124,7 @@ RefinementEnv TypeChecker::checkBlock(BlockStmt *block) {
   return result;
 }
 
-void TypeChecker::checkIf(IfStmt *node) {
+RefinementEnv TypeChecker::checkIf(IfStmt *node) {
 
   RefinementEnv old_env = current_env;
 
@@ -149,6 +149,8 @@ void TypeChecker::checkIf(IfStmt *node) {
   }
 
   current_env = mergeEnvs(after_true, after_false);
+
+  return current_env;
 }
 
 void TypeChecker::open(ASTNode *node) {

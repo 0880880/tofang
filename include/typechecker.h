@@ -16,7 +16,7 @@ private:
   void open(ASTNode *node);
   void close(ASTNode *node);
 
-  void checkIf(IfStmt *ifs);
+  RefinementEnv checkIf(IfStmt *ifs);
   RefinementEnv checkBlock(BlockStmt *block);
 
 public:
