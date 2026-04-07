@@ -388,6 +388,24 @@ void TypeChecker::close(ASTNode *node) {
         (typ != current_function->returnType)) {
       error("wrong return type");
     }
+
+    TypeThing *l = typ;
+    while (true) {
+      if (l->kind == TypeKind::REGIONED) {
+        auto &ld = std::get<RegionedType>(l->data);
+
+        if (!ld.region->region->outlives(current_function->decl->region)) {
+          error("Territory: allocated memory inside function cannot escape.");
+        }
+        l = ld.base;
+      } else if (l->kind == TypeKind::POINTER) {
+        l = std::get<PtrType>(l->data).pointee;
+      } else if (l->kind == TypeKind::REFERENCE) {
+        l = std::get<RefType>(l->data).referee;
+      } else {
+        break;
+      }
+    }
   } else if (auto *assign_stmt = dynamic_cast<AssignStmt *>(node)) {
 
     TypeThing *lhs = assign_stmt->type;
