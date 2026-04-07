@@ -62,7 +62,7 @@ int main() {
   lexer.token("if|else|for|return|region|while|struct|class", "KEYWORD");
   lexer.token("void|bool|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64", "PRIMITIVE");
   lexer.token("[a-zA-Z_][a-zA-Z0-9_]*", "IDENTIFIER");
-  lexer.token("?", "QUESTION");
+  lexer.token("\\?", "QUESTION");
   lexer.token("=", "EQUAL");
   lexer.token("\\+\\+|--", "ASSIGN");
   lexer.token("\\+|-|/"
