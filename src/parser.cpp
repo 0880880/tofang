@@ -341,6 +341,30 @@ Stmt *statement(Ptr &p) {
     return r;
   }
 
+  if (p.is("KEYWORD") && (*p).value == "struct") {
+    ++p;
+    Lexer::Token name = *p;
+    p.expect("IDENTIFIER");
+    p.expect("LBRACE");
+    auto *str = new StructStmt(name);
+    while (!p.eof() && !p.is("RBRACE")) {
+      if (auto t = type(p)) {
+        auto ty = *t;
+        str->types.push_back(ty);
+        auto field_name = *p;
+        str->names.push_back(field_name);
+        p.expect("IDENTIFIER");
+        p.expect("EQUAL");
+        str->definitions.push_back(expr(p));
+        p.expect("SEMICOLON");
+      } else {
+        throw runtime_error("Expected type inside struct " + name.value);
+      }
+    }
+    p.expect("RBRACE");
+    return str;
+  }
+
   if (p.is("KEYWORD") && (*p).value == "if") {
     ++p;
     auto *ifs = new IfStmt();
