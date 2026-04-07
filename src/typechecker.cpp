@@ -7,26 +7,20 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 
 using namespace std;
 
-struct RefinementEnv {
-  RefinementEnv *parent;
-  std::unordered_map<Decl *, TypeThing *> map;
-
-  TypeThing *lookup(Decl *d) {
-    if (map.contains(d)) {
-      return map[d];
-    }
-    if (parent) {
-      return parent->lookup(d);
-    }
-    return nullptr;
+TypeThing *RefinementEnv::lookup(Decl *d) {
+  if (map.contains(d)) {
+    return map[d];
   }
-};
-
-static RefinementEnv *current_env = {};
+  if (parent) {
+    return parent->lookup(d);
+  }
+  return nullptr;
+}
 
 bool Region::outlives(const Region *o) const {
   const Region *current = o;
@@ -39,11 +33,122 @@ bool Region::outlives(const Region *o) const {
   return false;
 }
 
-static FuncStmt *current_function = nullptr;
-
 static void error(const string &message) {
   cerr << "Type Error:\n    " << message << '\n';
   exit(1);
+}
+
+static RefinementEnv mergeEnvs(RefinementEnv &a, RefinementEnv &b) {
+  RefinementEnv result;
+  unordered_set<Decl *> keys;
+
+  for (auto &[k, _] : a.map) {
+    keys.insert(k);
+  }
+  for (auto &[k, _] : b.map) {
+    keys.insert(k);
+  }
+
+  for (Decl *key : keys) {
+    TypeThing *ta = a.lookup(key);
+    TypeThing *tb = b.lookup(key);
+    if (ta->kind == TypeKind::I_NULL && tb->kind == TypeKind::I_NULL) {
+      result.map[key] = type_inull;
+    } else if (ta->kind != TypeKind::I_NULL && tb->kind != TypeKind::I_NULL) {
+      if (ta == tb) {
+        result.map[key] = interner->getNullable(ta);
+      }
+    } else if (ta->kind == TypeKind::I_NULL && tb->kind != TypeKind::I_NULL) {
+      result.map[key] = interner->getNullable(tb);
+    } else if (ta->kind != TypeKind::I_NULL && tb->kind == TypeKind::I_NULL) {
+      result.map[key] = interner->getNullable(ta);
+    }
+  }
+
+  return result;
+}
+
+static RefinementEnv refineTrue(Expr *condition, RefinementEnv &env) {
+  if (auto *bin = dynamic_cast<BinaryExpr *>(condition)) {
+    if (bin->op.value == "&&") {
+      auto env1 = refineTrue(bin->left, env);
+      return refineTrue(bin->right, env1);
+    } else if (bin->op.value == "||") {
+      auto a = refineTrue(bin->left, env);
+      auto b = refineTrue(bin->right, env);
+      return mergeEnvs(a, b);
+    }
+  }
+  if (condition->t->kind == TypeKind::NULLABLE) {
+    if (auto var = dynamic_cast<VariableExpr *>(condition)) {
+      RefinementEnv e = {};
+      e.map[var->decl] = std::get<NullableType>(condition->t->data).base;
+      return mergeEnvs(env, e);
+    }
+  }
+  return env;
+}
+
+static RefinementEnv refineFalse(Expr *condition, RefinementEnv &env) {
+  if (auto *bin = dynamic_cast<BinaryExpr *>(condition)) {
+    if (bin->op.value == "&&") {
+      auto a = refineFalse(bin->left, env);
+      auto o = refineTrue(bin->left, env);
+      auto b = refineFalse(bin->right, o);
+      return mergeEnvs(a, b);
+    } else if (bin->op.value == "||") {
+      auto env1 = refineFalse(bin->left, env);
+      return refineFalse(bin->right, env1);
+    }
+  }
+  if (condition->t->kind == TypeKind::NULLABLE) {
+    if (auto var = dynamic_cast<VariableExpr *>(condition)) {
+      RefinementEnv e = {};
+      e.map[var->decl] = type_inull;
+      return mergeEnvs(env, e);
+    }
+  }
+  return env;
+}
+
+RefinementEnv TypeChecker::checkBlock(BlockStmt *block) {
+  RefinementEnv saved = current_env;
+
+  for (auto &stmt : block->statements) {
+    walk(stmt);
+  }
+
+  RefinementEnv result = current_env;
+  current_env = saved;
+
+  return result;
+}
+
+void TypeChecker::checkIf(IfStmt *node) {
+
+  RefinementEnv old_env = current_env;
+
+  walk(node->condition);
+
+  auto true_env = refineTrue(node->condition, current_env);
+  auto false_env = refineFalse(node->condition, current_env);
+
+  current_env = true_env;
+  RefinementEnv after_true = checkBlock(&node->body);
+
+  RefinementEnv after_false;
+
+  if (node->elseIf) {
+    current_env = false_env;
+    after_false = checkIf(node->elseIf);
+  } else if (node->elseStmt) {
+    current_env = false_env;
+    after_false = checkBlock(&node->elseStmt->body);
+  } else {
+    after_false = false_env;
+  }
+
+  current_env = mergeEnvs(after_true, after_false);
 }
 
 void TypeChecker::open(ASTNode *node) {
@@ -119,7 +224,14 @@ void TypeChecker::close(ASTNode *node) {
       throw runtime_error("Unhandeled String literal");
     }
   } else if (auto *var = dynamic_cast<VariableExpr *>(node)) {
-    var->t = var->decl->toType();
+    TypeThing *refined = current_env.lookup(var->decl);
+
+    if (refined) {
+      var->t = refined;
+    } else {
+      var->t = var->decl->toType();
+    }
+
   } else if (auto *bin = dynamic_cast<BinaryExpr *>(node)) {
 
     string op = bin->op.value;
@@ -373,4 +485,23 @@ void TypeChecker::close(ASTNode *node) {
       error("Cannot call non-function type");
     }
   }
+}
+
+void TypeChecker::walk(ASTNode *node) {
+
+  if (auto *ifs = dynamic_cast<IfStmt *>(node)) {
+    checkIf(ifs);
+    return;
+  }
+
+  open(node);
+
+  for (auto sub : node->walk()) {
+    if (!sub) {
+      continue;
+    }
+    walk(sub);
+  }
+
+  close(node);
 }
