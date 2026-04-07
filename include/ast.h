@@ -325,17 +325,13 @@ public:
 };
 
 class RegionStmt : public Stmt {
-private:
-  static std::atomic<uint32_t> counter;
 
 public:
   Lexer::Token name;
   BlockStmt body;
   Decl *decl = nullptr;
 
-  uint32_t id;
-
-  RegionStmt(Lexer::Token name) : name(std::move(name)), id(++counter) {}
+  RegionStmt(Lexer::Token name) : name(std::move(name)) {}
 
   std::vector<ASTNode *> walk() override { return {&body}; }
 
