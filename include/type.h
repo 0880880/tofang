@@ -32,7 +32,8 @@ enum class TypeKind : uint8_t {
   REGIONED,
   META,
   TYPE_VAR,
-  GENERIC_FUNC
+  GENERIC_FUNC,
+  I_NULL,
 };
 
 struct TypeThing;
@@ -212,3 +213,5 @@ extern TypeThing *type_i32;
 extern TypeThing *type_i64;
 extern TypeThing *type_f32;
 extern TypeThing *type_f64;
+
+extern TypeThing *type_inull;

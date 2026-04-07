@@ -54,9 +54,12 @@ string TypeThing::toString() {
     return std::get<PtrType>(data).pointee->toString() + "*";
   case TypeKind::REFERENCE:
     return std::get<RefType>(data).referee->toString() + "&";
-  case TypeKind::ARRAY:
+  case TypeKind::ARRAY: {
     ArrType arr = std::get<ArrType>(data);
     return arr.element->toString() + "[" + std::to_string(arr.length) + "]";
+  }
+  case TypeKind::I_NULL:
+    return "inull";
   }
 }
 
@@ -299,6 +302,8 @@ static TypeThing type_i64_obj{.kind = TypeKind::I64, .data = {}};
 static TypeThing type_f32_obj{.kind = TypeKind::F32, .data = {}};
 static TypeThing type_f64_obj{.kind = TypeKind::F64, .data = {}};
 
+static TypeThing type_inull_obj{.kind = TypeKind::I_NULL, .data = {}};
+
 TypeThing *type_void = &type_void_obj;
 TypeThing *type_bool = &type_bool_obj;
 
@@ -317,3 +322,5 @@ TypeThing *type_i64 = &type_i64_obj;
 
 TypeThing *type_f32 = &type_f32_obj;
 TypeThing *type_f64 = &type_f64_obj;
+
+TypeThing *type_inull = &type_inull_obj;
