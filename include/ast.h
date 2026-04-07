@@ -276,8 +276,16 @@ class StructStmt : public Stmt {
 public:
   std::vector<TypeThing *> types;
   std::vector<Lexer::Token> names;
+  std::vector<Expr *> definitions;
 
-  std::vector<ASTNode *> walk() override { return {}; }
+  std::vector<ASTNode *> walk() override {
+    vector<ASTNode *> v;
+    v.reserve(definitions.size());
+    for (Expr *e : definitions) {
+      v.push_back(e);
+    }
+    return v;
+  }
 
   string toString() override {
     std::string defs = "";
@@ -285,6 +293,8 @@ public:
       defs += types[i]->toString();
       defs += " ";
       defs += names[i].value;
+      defs += " = ";
+      defs += definitions[i]->toString();
       defs += "; ";
     }
     return "Struct{ " + defs + "}";
