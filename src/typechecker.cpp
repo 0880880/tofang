@@ -11,6 +11,8 @@
 
 using namespace std;
 
+std::unordered_map<Decl *, TypeThing *> refinements;
+
 bool Region::outlives(const Region *o) const {
   const Region *current = o;
   while (current) {
