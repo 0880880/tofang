@@ -5,7 +5,6 @@
 #include "territory_ast.h"
 #include "type.h"
 #include <algorithm>
-#include <atomic>
 #include <string>
 #include <utility>
 #include <vector>
