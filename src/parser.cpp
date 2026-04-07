@@ -185,6 +185,11 @@ Expr *primary(Ptr &p) {
     return l;
   }
 
+  if (p.is("NULL")) {
+    auto l = new LiteralExpr(LiteralExpr::Type::Null, *p);
+    ++p;
+    return l;
+  }
   if (p.is("INTEGER") || p.is("DECIMAL") || p.is("BOOLEAN") || p.is("CHAR") ||
       p.is("STRING")) {
     auto l = new LiteralExpr(LiteralExpr::Type::Integer, *p);

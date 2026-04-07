@@ -26,7 +26,15 @@ public:
 
 class LiteralExpr : public Expr {
 public:
-  enum Type : uint8_t { Integer, Decimal, Boolean, Char, String, MetaType };
+  enum Type : uint8_t {
+    Null,
+    Integer,
+    Decimal,
+    Boolean,
+    Char,
+    String,
+    MetaType
+  };
 
   Type type;
 
