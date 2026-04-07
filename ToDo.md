@@ -1,6 +1,6 @@
 - ~If Statements~
 - ~Nullable Types~
-- Escape territory check
+- ~Escape territory check~
 - Generic Region.alloc function
 - Structs
 - IR generation
