@@ -311,7 +311,14 @@ public:
   ElseStmt *elseStmt = nullptr;
 
   std::vector<ASTNode *> walk() override {
-    return {condition, &body, elseIf, elseStmt}; // elseStmt not ASTNode *
+    std::vector<ASTNode *> v = {condition, &body};
+    if (elseIf) {
+      v.push_back(elseIf);
+    }
+    if (elseStmt) {
+      v.push_back(elseStmt);
+    }
+    return v;
   }
 
   string toString() override { return "IfStmt"; }
