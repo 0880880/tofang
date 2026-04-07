@@ -335,6 +335,7 @@ void TypeChecker::close(ASTNode *node) {
     if (isNumeric(lhs) && isNumeric(rhs)) {
       if (numOrder(lhs) >= numOrder(rhs)) {
         assign->right->t = lhs;
+        return;
       } else {
         error("assignment type mismatch " + lhs->toString() + " = " +
               rhs->toString());
@@ -396,7 +397,8 @@ void TypeChecker::close(ASTNode *node) {
 
     if (isNumeric(lhs) && isNumeric(rhs)) {
       if (numOrder(lhs) >= numOrder(rhs)) {
-        assign->right->t = lhs;
+        assign_stmt->value->t = lhs;
+        return;
       } else {
         error("assignment type mismatch " + lhs->toString() + " = " +
               rhs->toString());
@@ -416,7 +418,8 @@ void TypeChecker::close(ASTNode *node) {
         l = ld.base;
         r = rd.base;
       } else if (l != r) {
-        error("assignment type mismatch");
+        error("assignment type mismatch " + lhs->toString() + " = " +
+              rhs->toString());
       } else if (l->kind == TypeKind::POINTER) {
         l = std::get<PtrType>(l->data).pointee;
         r = std::get<PtrType>(r->data).pointee;
