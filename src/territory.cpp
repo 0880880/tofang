@@ -4,8 +4,9 @@
 using namespace std;
 
 void Territory::open(ASTNode *node) {
-  if (dynamic_cast<FuncStmt *>(node)) {
+  if (auto *fun = dynamic_cast<FuncStmt *>(node)) {
     regions.push_back({&regions.back()});
+    fun->decl->region = &regions.back();
   } else if (auto *reg = dynamic_cast<RegionStmt *>(node)) {
     regions.push_back({&regions.back()});
     reg->decl->region = &regions.back();
