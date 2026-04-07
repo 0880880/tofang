@@ -13,8 +13,9 @@
 using namespace std;
 
 TypeThing *RefinementEnv::lookup(Decl *d) {
-  if (map.contains(d)) {
-    return map[d];
+  auto it = map.find(d);
+  if (it != map.end()) {
+    return it->second;
   }
   if (parent) {
     return parent->lookup(d);
