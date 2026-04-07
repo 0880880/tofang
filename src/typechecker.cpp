@@ -211,6 +211,21 @@ static int numOrder(const TypeThing *t) {
   }
 }
 
+TypeThing *stripRegioned(TypeThing *t) {
+  switch (t->kind) {
+  case TypeKind::POINTER:
+    return interner->getReference(
+        stripRegioned(std::get<PtrType>(t->data).pointee));
+  case TypeKind::REFERENCE:
+    return interner->getPointer(
+        stripRegioned(std::get<RefType>(t->data).referee));
+  case TypeKind::REGIONED:
+    return stripRegioned(std::get<RegionedType>(t->data).base);
+  default:
+    return t;
+  }
+}
+
 void TypeChecker::close(ASTNode *node) {
 
   if (auto *lit = dynamic_cast<LiteralExpr *>(node)) {
@@ -351,6 +366,12 @@ void TypeChecker::close(ASTNode *node) {
       return;
     }
 
+    TypeThing *sl = stripRegioned(lhs);
+    TypeThing *sr = stripRegioned(rhs);
+    if (sl == sr) {
+      return;
+    }
+
     TypeThing *l = lhs;
     TypeThing *r = rhs;
     while (true) {
@@ -433,6 +454,12 @@ void TypeChecker::close(ASTNode *node) {
     }
 
     if (lhs == rhs) {
+      return;
+    }
+
+    TypeThing *sl = stripRegioned(lhs);
+    TypeThing *sr = stripRegioned(rhs);
+    if (sl == sr) {
       return;
     }
 
