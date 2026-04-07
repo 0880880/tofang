@@ -360,7 +360,7 @@ Stmt *statement(Ptr &p) {
 
     if (p.isV("else")) {
       ++p;
-      bool hasElse = true;
+      bool has_else = true;
       while (p.isV("if")) {
         ++p;
         cur->elseIf = new IfStmt();
@@ -378,11 +378,11 @@ Stmt *statement(Ptr &p) {
         if (p.isV("else")) {
           ++p;
         } else {
-          hasElse = false;
+          has_else = false;
           break;
         }
       }
-      if (hasElse) {
+      if (has_else) {
         p.expect("LBRACE");
         cur->elseStmt = new ElseStmt();
 
