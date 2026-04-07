@@ -279,6 +279,8 @@ public:
   std::vector<Lexer::Token> names;
   std::vector<Expr *> definitions;
 
+  StructStmt(Lexer::Token name) : name(std::move(name)) {}
+
   std::vector<ASTNode *> walk() override {
     vector<ASTNode *> v;
     v.reserve(definitions.size());
