@@ -1,6 +1,5 @@
 #include "type.h"
 #include "decl.h"
-#include <cstdint>
 #include <string>
 
 using namespace std;
@@ -250,7 +249,8 @@ TypeThing *TypeInterner::substitute(
                  .length = 0,
                  .region = 0,
                  .name = std::get<VarType>(t->data).name,
-                 .params = {}};
+                 .params = {},
+                 .params_b = {}};
     return subst[k];
   }
   case TypeKind::POINTER:

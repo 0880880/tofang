@@ -1,6 +1,5 @@
 #include "territory.h"
 #include "ast.h"
-#include <stdexcept>
 
 using namespace std;
 
