@@ -220,6 +220,9 @@ void TypeChecker::close(ASTNode *node) {
     case LiteralExpr::MetaType:
       lit->t = interner->getMeta(lit->typeValue);
       break;
+    case LiteralExpr::Null:
+      lit->t = type_inull;
+      break;
     case LiteralExpr::String:
       throw runtime_error("Unhandeled String literal");
     }
