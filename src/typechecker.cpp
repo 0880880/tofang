@@ -363,7 +363,7 @@ void TypeChecker::close(ASTNode *node) {
         }
         l = ld.base;
         r = rd.base;
-      } else if (l != r) {
+      } else if (l->kind != r->kind) {
         error("assignment type mismatch " + lhs->toString() + " = " +
               rhs->toString());
       } else if (l->kind == TypeKind::POINTER) {
@@ -448,7 +448,7 @@ void TypeChecker::close(ASTNode *node) {
         }
         l = ld.base;
         r = rd.base;
-      } else if (l != r) {
+      } else if (l->kind != r->kind) {
         error("assignment type mismatch " + lhs->toString() + " = " +
               rhs->toString());
       } else if (l->kind == TypeKind::POINTER) {
