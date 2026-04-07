@@ -2,7 +2,7 @@
 #include "ast.h"
 
 struct RefinementEnv {
-  RefinementEnv *parent;
+  RefinementEnv *parent = nullptr;
   std::unordered_map<Decl *, TypeThing *> map;
 
   TypeThing *lookup(Decl *d);
