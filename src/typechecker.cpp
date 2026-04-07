@@ -325,6 +325,10 @@ void TypeChecker::close(ASTNode *node) {
       return;
     }
 
+    if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
+      return;
+    }
+
     TypeThing *l = lhs;
     TypeThing *r = rhs;
     while (true) {
@@ -370,6 +374,10 @@ void TypeChecker::close(ASTNode *node) {
     assert(rhs != nullptr);
 
     if (lhs == rhs) {
+      return;
+    }
+
+    if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
       return;
     }
 
