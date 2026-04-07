@@ -366,12 +366,6 @@ void TypeChecker::close(ASTNode *node) {
       return;
     }
 
-    TypeThing *sl = stripRegioned(lhs);
-    TypeThing *sr = stripRegioned(rhs);
-    if (sl == sr) {
-      return;
-    }
-
     TypeThing *l = lhs;
     TypeThing *r = rhs;
     while (true) {
