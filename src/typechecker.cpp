@@ -33,6 +33,8 @@ bool Region::outlives(const Region *o) const {
 
 static void error(const string &message) {
   cerr << "Type Error:\n    " << message << '\n';
+  cout.flush();
+  cerr.flush();
   exit(1);
 }
 

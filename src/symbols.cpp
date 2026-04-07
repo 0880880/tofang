@@ -8,6 +8,8 @@ using namespace std;
 
 static void error(const string &msg) {
   cerr << msg << '\n';
+  cout.flush();
+  cerr.flush();
   exit(1);
 }
 
