@@ -17,9 +17,6 @@ TypeThing *RefinementEnv::lookup(Decl *d) {
   if (it != map.end()) {
     return it->second;
   }
-  if (parent) {
-    return parent->lookup(d);
-  }
   return nullptr;
 }
 
