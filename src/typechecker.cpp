@@ -329,6 +329,10 @@ void TypeChecker::close(ASTNode *node) {
     assert(lhs != nullptr);
     assert(rhs != nullptr);
 
+    if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
+      return;
+    }
+
     if (isNumeric(lhs) && isNumeric(rhs)) {
       if (numOrder(lhs) >= numOrder(rhs)) {
         assign->right->t = lhs;
@@ -344,10 +348,6 @@ void TypeChecker::close(ASTNode *node) {
     }
 
     if (lhs == rhs) {
-      return;
-    }
-
-    if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
       return;
     }
 
@@ -396,6 +396,10 @@ void TypeChecker::close(ASTNode *node) {
     assert(lhs != nullptr);
     assert(rhs != nullptr);
 
+    if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
+      return;
+    }
+
     if (isNumeric(lhs) && isNumeric(rhs)) {
       if (numOrder(lhs) >= numOrder(rhs)) {
         assign->right->t = lhs;
@@ -411,10 +415,6 @@ void TypeChecker::close(ASTNode *node) {
     }
 
     if (lhs == rhs) {
-      return;
-    }
-
-    if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
       return;
     }
 
