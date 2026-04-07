@@ -94,6 +94,23 @@ TypeThing *TypeInterner::getRegioned(TypeThing *base, Decl *region) {
   return t;
 }
 
+TypeThing *TypeInterner::getNullable(TypeThing *base) {
+  TypeKey key{};
+  key.kind = TypeKind::NULLABLE;
+  key.a = base;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::NULLABLE,
+                          .data = NullableType{.base = base}};
+
+  table[key] = t;
+  return t;
+}
+
 TypeThing *TypeInterner::getPointer(TypeThing *pointee) {
   TypeKey key{};
   key.kind = TypeKind::POINTER;

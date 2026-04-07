@@ -22,6 +22,7 @@ enum class TypeKind : uint8_t {
   F32,
   F64,
   FUNCTION,
+  NULLABLE,
   UNTYPED_INT,
   UNTYPED_FLOAT,
   POINTER,
@@ -39,6 +40,10 @@ struct TypeThing;
 struct RegionedType {
   TypeThing *base;
   Decl *region;
+};
+
+struct NullableType {
+  TypeThing *base;
 };
 
 struct PtrType {
@@ -81,9 +86,9 @@ struct GenericFuncType {
   TypeThing *return_type;
 };
 
-using TypeData =
-    std::variant<RegionedType, RegionType, PtrType, RefType, ArrType,
-                 StructType, FuncType, MetaType, VarType, GenericFuncType>;
+using TypeData = std::variant<RegionedType, NullableType, RegionType, PtrType,
+                              RefType, ArrType, StructType, FuncType, MetaType,
+                              VarType, GenericFuncType>;
 
 struct TypeThing {
   TypeKind kind;
@@ -164,6 +169,8 @@ class TypeInterner {
 
 public:
   TypeThing *getRegioned(TypeThing *base, Decl *region);
+
+  TypeThing *getNullable(TypeThing *base);
 
   TypeThing *getPointer(TypeThing *pointee);
 
