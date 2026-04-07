@@ -11,7 +11,22 @@
 
 using namespace std;
 
-std::unordered_map<Decl *, TypeThing *> refinements;
+struct RefinementEnv {
+  RefinementEnv *parent;
+  std::unordered_map<Decl *, TypeThing *> map;
+
+  TypeThing *lookup(Decl *d) {
+    if (map.contains(d)) {
+      return map[d];
+    }
+    if (parent) {
+      return parent->lookup(d);
+    }
+    return nullptr;
+  }
+};
+
+static RefinementEnv *current_env = {};
 
 bool Region::outlives(const Region *o) const {
   const Region *current = o;
