@@ -22,6 +22,9 @@ string readFile(const fs::path &path) {
 void symbolWalk(ASTNode *node) {
   Symbols::walkAstOpen(node);
   for (auto sub : node->walk()) {
+    if (!sub) {
+      continue;
+    }
     symbolWalk(sub);
   }
   Symbols::walkAstClose(node);
@@ -31,6 +34,9 @@ void typeWalk(ASTNode *node) {
   TypeChecker::open(node);
 
   for (auto sub : node->walk()) {
+    if (!sub) {
+      continue;
+    }
     typeWalk(sub);
   }
 
@@ -41,6 +47,9 @@ void regionWalk(Territory &territory, ASTNode *node) {
   territory.open(node);
 
   for (auto sub : node->walk()) {
+    if (!sub) {
+      continue;
+    }
     regionWalk(territory, sub);
   }
 
