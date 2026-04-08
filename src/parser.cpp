@@ -109,6 +109,8 @@ optional<TypeThing *> type(Ptr &p) {
     } else if ((*p).value == "f64") {
       t = type_f64;
     }
+  } else if (p.is("IDENTIFIER")) {
+    t = interner->getUserType((*p).value);
   } else {
     return nullopt;
   }

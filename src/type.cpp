@@ -265,6 +265,22 @@ TypeThing *TypeInterner::getStruct(Decl *s) {
   return t;
 }
 
+TypeThing *TypeInterner::getUserType(const std::string &name) {
+  TypeKey key{};
+  key.kind = TypeKind::STRUCT;
+  key.name = name;
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::USER_TYPE, .data = UserType{name}};
+
+  table[key] = t;
+  return t;
+}
+
 TypeThing *TypeInterner::substitute(
     TypeThing *t,
     std::unordered_map<TypeKey, TypeThing *, TypeKeyHash, TypeKeyEq> &subst) {

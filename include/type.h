@@ -200,6 +200,8 @@ public:
 
   TypeThing *getStruct(Decl *s);
 
+  TypeThing *getUserType(const std::string &name);
+
   TypeThing *substitute(
       TypeThing *t,
       std::unordered_map<TypeKey, TypeThing *, TypeKeyHash, TypeKeyEq> &subst);
