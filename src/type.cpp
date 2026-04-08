@@ -34,6 +34,8 @@ string TypeThing::toString() {
     return "f32";
   case TypeKind::F64:
     return "f64";
+  case TypeKind::STRUCT:
+    return "struct(" + std::get<StructType>(data).str->name.value + ")";
   case TypeKind::NULLABLE:
     return std::get<NullableType>(data).base->toString() + "?";
   case TypeKind::REGIONED: {
