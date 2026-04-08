@@ -4,5 +4,6 @@
 - ~Generic Region.alloc function~
 - ~Fix regioned type checking~
 - Structs
+- Error on taken symbols
 - IR generation
 - More ToDo
