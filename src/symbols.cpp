@@ -65,6 +65,18 @@ void Symbols::walkAstOpen(ASTNode *node) {
     if (!found) {
       error("Unknown name \"" + v->name.value + "\"");
     }
+  } else if (auto s = dynamic_cast<StructStmt *>(node)) {
+    StructDecl data;
+    for (size_t i = 0; i < s->names.size(); i++) {
+      data.fieldTypes.push_back(s->types[i]);
+      data.fieldNames.push_back(s->names[i]);
+      data.fieldDefs.push_back(s->definitions[i]);
+    }
+    s->decl = new Decl{.kind = DeclKind::STRUCT,
+                       .name = r->name,
+                       .data = data,
+                       .region = nullptr};
+    declarations.back()[r->name.value] = s->decl;
   }
 }
 
