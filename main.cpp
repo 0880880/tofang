@@ -92,7 +92,9 @@ int main() {
   }
   cout << '\n';
 
-  Program p = Parser::buildAST(tokens);
+  Parser parser;
+
+  Program p = parser.buildAST(tokens);
 
   printAST(&p);
 
