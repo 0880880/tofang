@@ -1,10 +1,14 @@
 #pragma once
 
-#include "ast.h"
+#include "ast_base.h"
+#include <deque>
+#include <string>
+#include <unordered_map>
+
 
 class Symbols {
 public:
-  deque<unordered_map<string, Decl *>> declarations = {{}};
+  std::deque<std::unordered_map<std::string, Decl *>> declarations = {{}};
 
   void open(ASTNode *node);
   void close(ASTNode *node);
