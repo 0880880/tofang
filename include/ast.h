@@ -294,6 +294,33 @@ public:
   }
 };
 
+class StructInitExpr : public Expr {
+public:
+  TypeThing *struct_type;
+  std::vector<Lexer::Token> names;
+  std::vector<Expr *> values;
+
+  std::vector<ASTNode *> walk() override {
+    vector<ASTNode *> v;
+    v.reserve(values.size());
+    for (Expr *e : values) {
+      v.push_back(e);
+    }
+    return v;
+  }
+
+  string toString() override {
+    std::string defs = "";
+    for (size_t i = 0; i < names.size(); ++i) {
+      defs += names[i].value;
+      defs += " = ";
+      defs += values[i]->toString();
+      defs += "; ";
+    }
+    return "StructInit{ " + defs + "}";
+  }
+};
+
 class IfStmt;
 
 class ElseStmt : public Stmt {

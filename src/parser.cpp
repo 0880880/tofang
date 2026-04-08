@@ -101,16 +101,16 @@ Expr *Parser::primary(Ptr &p) {
     throw std::runtime_error("Unexpected EOF in primary()");
   }
 
-  if (p.is("IDENTIFIER")) {
-    auto v = new VariableExpr(*p);
-    ++p;
-    return v;
-  }
-
   if (auto ty = type(p)) {
     auto l = new LiteralExpr(LiteralExpr::Type::MetaType, *p);
     l->typeValue = *ty;
     return l;
+  }
+
+  if (p.is("IDENTIFIER")) {
+    auto v = new VariableExpr(*p);
+    ++p;
+    return v;
   }
 
   if (p.is("NULL")) {
@@ -202,6 +202,31 @@ Expr *Parser::postfix(Ptr &p) {
       }
       ++p;
       left = c;
+    } else if (p.is("LBRACE")) {
+      auto in = new StructInitExpr();
+      if (auto lit = dynamic_cast<LiteralExpr *>(left)) {
+        if (lit->type != LiteralExpr::Type::MetaType) {
+          throw runtime_error("Struct initializer LHS must be a type.");
+        } else {
+          in->struct_type = lit->typeValue;
+        }
+      } else {
+        throw runtime_error("Struct initializer LHS must be a type.");
+      }
+      bool start = true;
+      ++p;
+      while (start || p.is("COMMA")) {
+        if (p.is("RBRACE")) {
+          break;
+        }
+        start = false;
+        in->names.push_back(*p);
+        p.expect("IDENTIFIER");
+        p.expect("EQUAL");
+        in->values.push_back(expr(p));
+      }
+      ++p;
+      left = in;
     } else {
       break;
     }
