@@ -32,7 +32,7 @@ struct FuncDecl {
 
 struct StructDecl {
   std::vector<TypeThing *> fieldTypes;
-  std::vector<std::string> fieldNames;
+  std::vector<Lexer::Token> fieldNames;
   std::vector<Expr *> fieldDefs;
 };
 
