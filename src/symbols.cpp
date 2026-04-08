@@ -73,7 +73,7 @@ void Symbols::open(ASTNode *node) {
       data.fieldDefs.push_back(s->definitions[i]);
     }
     s->decl = new Decl{.kind = DeclKind::STRUCT,
-                       .name = r->name,
+                       .name = s->name,
                        .data = data,
                        .region = nullptr};
     declarations.back()[r->name.value] = s->decl;
