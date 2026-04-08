@@ -7,6 +7,22 @@
 #include <string>
 
 using Ptr = Parser::Ptr;
+template <typename T> using Named = Parser::Named<T>;
+
+Decl *Parser::search(const std::string &name, bool fail) {
+  for (auto map : std::views::reverse(symbols->declarations)) {
+    auto d = map.find(name);
+    if (d != map.end()) {
+      return d->second;
+    }
+  }
+  if (fail) {
+    throw std::runtime_error("Unkown symbol: " + name);
+  }
+  return nullptr;
+}
+
+Parser::Parser() { symbols = std::make_unique<Symbols>(); }
 
 optional<TypeThing *> Parser::type(Ptr &p) {
   TypeThing *t;
@@ -36,8 +52,11 @@ optional<TypeThing *> Parser::type(Ptr &p) {
     } else if ((*p).value == "f64") {
       t = type_f64;
     }
-  } else if (p.is("IDENTIFIER")) {
-    t = interner->getUserType((*p).value);
+  } else if (p.is("IDENTIFIER") && search((*p).value, false) &&
+             search((*p).value, false)->kind ==
+                 DeclKind::STRUCT) { // TODO avoid redoing search
+    auto *str = search((*p).value, false);
+    t = interner->getStruct(str);
   } else {
     return nullopt;
   }
@@ -95,7 +114,7 @@ int precedence(const std::string &op) {
   return -1;
 }
 
-Expr *Parser::primary(Ptr &p) {
+Named<Expr *> Parser::primary(Ptr &p) {
 
   if (p.eof()) {
     throw std::runtime_error("Unexpected EOF in primary()");
@@ -104,19 +123,19 @@ Expr *Parser::primary(Ptr &p) {
   if (auto ty = type(p)) {
     auto l = new LiteralExpr(LiteralExpr::Type::MetaType, *p);
     l->typeValue = *ty;
-    return l;
+    return symbols->open(l);
   }
 
   if (p.is("IDENTIFIER")) {
     auto v = new VariableExpr(*p);
     ++p;
-    return v;
+    return symbols->open(v);
   }
 
   if (p.is("NULL")) {
     auto l = new LiteralExpr(LiteralExpr::Type::Null, *p);
     ++p;
-    return l;
+    return symbols->open(l);
   }
   if (p.is("INTEGER") || p.is("DECIMAL") || p.is("BOOLEAN") || p.is("CHAR") ||
       p.is("STRING")) {
@@ -135,22 +154,22 @@ Expr *Parser::primary(Ptr &p) {
     }
 
     ++p;
-    return l;
+    return symbols->open(l);
   }
 
   if (p.is("LPAREN")) {
     ++p;
-    Expr *inner = expr(p);
+    Expr *inner = expr(p).get();
     p.expect("RPAREN");
-    return new GroupingExpr(inner);
+    return symbols->open(new GroupingExpr(inner));
   }
 
   throw runtime_error("Unexpected token in primary(): " + (*p).type + "  L" +
                       to_string((*p).sourceLineStart));
 }
 
-Expr *Parser::postfix(Ptr &p) {
-  Expr *left = primary(p);
+Named<Expr *> Parser::postfix(Ptr &p) {
+  Expr *left = primary(p).get();
   while (!p.eof()) {
     if (p.is("DOT")) {
       ++p;
@@ -159,7 +178,7 @@ Expr *Parser::postfix(Ptr &p) {
       left = new AttribExpr(left, bar);
     } else if (p.is("LBRACKET")) {
       ++p;
-      auto ind = new IndexExpr(left, expr(p));
+      auto ind = new IndexExpr(left, expr(p).get());
       p.expect("RBRACKET");
       left = ind;
     } else if (p.isV("<")) {
@@ -185,7 +204,7 @@ Expr *Parser::postfix(Ptr &p) {
           break;
         }
         start = false;
-        c->args.push_back(expr(p));
+        c->args.push_back(expr(p).get());
       }
       ++p;
       left = c;
@@ -198,7 +217,7 @@ Expr *Parser::postfix(Ptr &p) {
           break;
         }
         start = false;
-        c->args.push_back(expr(p));
+        c->args.push_back(expr(p).get());
       }
       ++p;
       left = c;
@@ -223,7 +242,7 @@ Expr *Parser::postfix(Ptr &p) {
         in->names.push_back(*p);
         p.expect("IDENTIFIER");
         p.expect("EQUAL");
-        in->values.push_back(expr(p));
+        in->values.push_back(expr(p).get());
       }
       ++p;
       left = in;
@@ -232,10 +251,10 @@ Expr *Parser::postfix(Ptr &p) {
     }
   }
 
-  return left;
+  return symbols->open(left);
 }
 
-Expr *Parser::prefix(Ptr &p) {
+Named<Expr *> Parser::prefix(Ptr &p) {
   if (p.eof()) {
     throw std::runtime_error("Unexpected EOF in prefix()");
   }
@@ -243,14 +262,14 @@ Expr *Parser::prefix(Ptr &p) {
   if (p.is("OP") && p.expectV("&", "*", "-", "+", "!")) {
     Lexer::Token op = *p;
     ++p;
-    return new UnaryExpr(op, prefix(p));
+    return symbols->open(new UnaryExpr(op, prefix(p).get()));
   }
 
   return postfix(p);
 }
 
-Expr *Parser::binExpr(Ptr &p, int minPrec) {
-  Expr *left = prefix(p);
+Named<Expr *> Parser::binExpr(Ptr &p, int minPrec) {
+  Expr *left = prefix(p).get();
 
   while (!p.eof() && p.is("OP")) {
     Lexer::Token op = *p;
@@ -261,27 +280,27 @@ Expr *Parser::binExpr(Ptr &p, int minPrec) {
 
     ++p;
 
-    Expr *right = expr(p, prec + 1);
+    Expr *right = expr(p, prec + 1).get();
     left = new BinaryExpr(left, op, right);
   }
 
-  return left;
+  return symbols->open(left);
 }
 
-Expr *Parser::expr(Ptr &p, int minPrec) {
-  Expr *left = binExpr(p, minPrec);
+Named<Expr *> Parser::expr(Ptr &p, int minPrec) {
+  Expr *left = binExpr(p, minPrec).get();
 
   if (!p.eof() && p.is("EQUAL")) {
     Lexer::Token op = *p;
     ++p;
-    Expr *right = expr(p, 0);
-    return new AssignExpr(left, op, right);
+    Expr *right = expr(p, 0).get();
+    return symbols->open(new AssignExpr(left, op, right));
   }
 
-  return left;
+  return symbols->open(left);
 }
 
-Stmt *Parser::statement(Ptr &p) {
+Named<Stmt *> Parser::statement(Ptr &p) {
   if (p.eof()) {
     throw std::runtime_error("Unexpected EOF in statement()");
   }
@@ -289,9 +308,9 @@ Stmt *Parser::statement(Ptr &p) {
   if (p.is("KEYWORD") && (*p).value == "return") {
     ++p;
     auto r = new ReturnStmt();
-    r->value = expr(p);
+    r->value = expr(p).get();
     p.expect("SEMICOLON");
-    return r;
+    return symbols->open(r);
   }
 
   if (p.is("KEYWORD") && (*p).value == "struct") {
@@ -308,28 +327,32 @@ Stmt *Parser::statement(Ptr &p) {
         str->names.push_back(field_name);
         p.expect("IDENTIFIER");
         p.expect("EQUAL");
-        str->definitions.push_back(expr(p));
+        str->definitions.push_back(expr(p).get());
         p.expect("SEMICOLON");
       } else {
         throw runtime_error("Expected type inside struct " + name.value);
       }
     }
     p.expect("RBRACE");
-    return str;
+    return symbols->open(str);
   }
 
   if (p.is("KEYWORD") && (*p).value == "if") {
     ++p;
     auto *ifs = new IfStmt();
     p.expect("LPAREN");
-    Expr *condition = expr(p);
+    Expr *condition = expr(p).get();
     ifs->condition = condition;
     p.expect("RPAREN");
     p.expect("LBRACE");
 
+    symbols->open(&ifs->body);
+
     while (!p.eof() && !p.is("RBRACE")) {
-      ifs->body.statements.push_back(statement(p));
+      ifs->body.statements.push_back(statement(p).get());
     }
+
+    symbols->close(&ifs->body);
 
     p.expect("RBRACE");
 
@@ -343,13 +366,17 @@ Stmt *Parser::statement(Ptr &p) {
         cur->elseIf = new IfStmt();
         cur = cur->elseIf;
         p.expect("LPAREN");
-        cur->condition = expr(p);
+        cur->condition = expr(p).get();
         p.expect("RPAREN");
         p.expect("LBRACE");
 
+        symbols->open(&cur->body);
+
         while (!p.eof() && !p.is("RBRACE")) {
-          cur->body.statements.push_back(statement(p));
+          cur->body.statements.push_back(statement(p).get());
         }
+
+        symbols->close(&cur->body);
 
         p.expect("RBRACE");
         if (p.isV("else")) {
@@ -363,15 +390,19 @@ Stmt *Parser::statement(Ptr &p) {
         p.expect("LBRACE");
         cur->elseStmt = new ElseStmt();
 
+        symbols->open(&cur->elseStmt->body);
+
         while (!p.eof() && !p.is("RBRACE")) {
-          cur->elseStmt->body.statements.push_back(statement(p));
+          cur->elseStmt->body.statements.push_back(statement(p).get());
         }
+
+        symbols->close(&cur->elseStmt->body);
 
         p.expect("RBRACE");
       }
     }
 
-    return ifs;
+    return symbols->open(ifs);
   }
 
   if (p.is("KEYWORD") && (*p).value == "region") {
@@ -381,12 +412,16 @@ Stmt *Parser::statement(Ptr &p) {
     auto r = new RegionStmt(name);
     p.expect("LBRACE");
 
+    symbols->open(&r->body);
+
     while (!p.eof() && !p.is("RBRACE")) {
-      r->body.statements.push_back(statement(p));
+      r->body.statements.push_back(statement(p).get());
     }
 
+    symbols->close(&r->body);
+
     p.expect("RBRACE");
-    return r;
+    return symbols->open(r);
   }
 
   if (p.is("KEYWORD") && (*p).value == "for") {
@@ -396,15 +431,15 @@ Stmt *Parser::statement(Ptr &p) {
     Expr *condition = nullptr;
     Expr *update = nullptr;
     if (!p.is("SEMICOLON")) {
-      init = statement(p);
+      init = statement(p).get();
     }
     p.expect("SEMICOLON");
     if (!p.is("SEMICOLON")) {
-      condition = expr(p);
+      condition = expr(p).get();
     }
     p.expect("SEMICOLON");
     if (!p.is("RPAREN")) {
-      update = expr(p);
+      update = expr(p).get();
     }
     p.expect("RPAREN");
     auto *f = new ForStmt();
@@ -413,12 +448,16 @@ Stmt *Parser::statement(Ptr &p) {
     f->update = update;
     p.expect("LBRACE");
 
+    symbols->open(&f->body);
+
     while (!p.eof() && !p.is("RBRACE")) {
-      f->body.statements.push_back(statement(p));
+      f->body.statements.push_back(statement(p).get());
     }
 
+    symbols->close(&f->body);
+
     p.expect("RBRACE");
-    return f;
+    return symbols->open(f);
   }
 
   if (auto ty = type(p)) {
@@ -429,9 +468,9 @@ Stmt *Parser::statement(Ptr &p) {
 
     if (p.is("EQUAL")) {
       ++p;
-      Expr *rhs = expr(p);
+      Expr *rhs = expr(p).get();
       p.expect("SEMICOLON");
-      return new AssignStmt(t, name, rhs);
+      return symbols->open(new AssignStmt(t, name, rhs));
     }
 
     if (p.isV("<")) {
@@ -453,12 +492,16 @@ Stmt *Parser::statement(Ptr &p) {
       p.expect("RPAREN");
       p.expect("LBRACE");
 
+      symbols->open(&fn->body);
+
       while (!p.eof() && !p.is("RBRACE")) {
-        fn->body.statements.push_back(statement(p));
+        fn->body.statements.push_back(statement(p).get());
       }
 
+      symbols->close(&fn->body);
+
       p.expect("RBRACE");
-      return fn;
+      return symbols->open(fn);
     }
 
     if (p.is("LPAREN")) {
@@ -468,17 +511,21 @@ Stmt *Parser::statement(Ptr &p) {
 
       auto *fn = new FuncStmt(t, name);
 
+      symbols->open(&fn->body);
+
       while (!p.eof() && !p.is("RBRACE")) {
-        fn->body.statements.push_back(statement(p));
+        fn->body.statements.push_back(statement(p).get());
       }
 
+      symbols->close(&fn->body);
+
       p.expect("RBRACE");
-      return fn;
+      return symbols->open(fn);
     }
   }
-  Expr *e = expr(p);
+  Expr *e = expr(p).get();
   p.expect("SEMICOLON");
-  return new ExprStmt(e);
+  return symbols->open(new ExprStmt(e));
 
   throw std::runtime_error("Unexpected token in statement(): " + (*p).type);
 }
@@ -490,7 +537,7 @@ Program Parser::buildAST(Tokens tokens) {
   Ptr ptr(it, tokens.end());
 
   while (it != tokens.end()) {
-    prog.statements.push_back(statement(ptr));
+    prog.statements.push_back(statement(ptr).get());
   }
 
   return prog;

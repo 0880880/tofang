@@ -2,7 +2,6 @@
 #include "include/territory.h"
 #include "lexer.h"
 #include "parser.h"
-#include "symbols.h"
 #include "typechecker.h"
 #include <filesystem>
 #include <fstream>
@@ -87,10 +86,6 @@ int main() {
   Program p = parser.buildAST(tokens);
 
   printAST(&p);
-
-  Symbols sym(parser);
-
-  sym.walk(&p);
 
   Territory territory;
 
