@@ -28,5 +28,8 @@ TypeThing *Decl::toType() {
   case DeclKind::REGION: {
     return interner->getRegion(this);
   }
+  case DeclKind::STRUCT: {
+    return interner->getStruct(this);
+  }
   }
 }

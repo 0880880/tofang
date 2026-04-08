@@ -30,6 +30,7 @@ enum class TypeKind : uint8_t {
   ARRAY,
   REGION,
   REGIONED,
+  STRUCT,
   META,
   TYPE_VAR,
   GENERIC_FUNC,
@@ -60,10 +61,6 @@ struct ArrType {
   size_t length;
 };
 
-struct StructType {
-  std::string id;
-};
-
 struct FuncType {
   std::vector<TypeThing *> params;
   TypeThing *return_type;
@@ -79,6 +76,10 @@ struct VarType {
 
 struct RegionType {
   Decl *region;
+};
+
+struct StructType {
+  Decl *str;
 };
 
 struct GenericFuncType {
@@ -191,6 +192,8 @@ public:
   TypeThing *getTypeVar(const std::string &name);
 
   TypeThing *getRegion(Decl *region);
+
+  TypeThing *getStruct(Decl *s);
 
   TypeThing *substitute(
       TypeThing *t,

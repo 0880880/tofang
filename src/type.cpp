@@ -243,6 +243,26 @@ TypeThing *TypeInterner::getTypeVar(const string &name) {
   return t;
 }
 
+TypeThing *TypeInterner::getStruct(Decl *s) {
+  TypeKey key{};
+  key.kind = TypeKind::STRUCT;
+  key.name = s->name.value; // I don't know, but name should be unique so this
+                            // can't be a problem
+  StructDecl sd = std::get<StructDecl>(s->data);
+  key.params.insert(key.params.begin(), sd.fieldTypes.begin(),
+                    sd.fieldTypes.end());
+
+  auto it = table.find(key);
+  if (it != table.end()) {
+    return it->second;
+  }
+
+  auto *t = new TypeThing{.kind = TypeKind::STRUCT, .data = StructType{s}};
+
+  table[key] = t;
+  return t;
+}
+
 TypeThing *TypeInterner::substitute(
     TypeThing *t,
     std::unordered_map<TypeKey, TypeThing *, TypeKeyHash, TypeKeyEq> &subst) {
