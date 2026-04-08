@@ -13,6 +13,59 @@ static void error(const string &msg) {
   exit(1);
 }
 
+void Symbols::realWalk(ASTNode *node) {
+  resolveTypes(false);
+  open(node);
+
+  for (auto sub : node->walk()) {
+    if (!sub) {
+      continue;
+    }
+    realWalk(sub);
+  }
+
+  close(node);
+}
+
+void Symbols::walk(ASTNode *node) {
+  realWalk(node);
+  resolveTypes(true);
+}
+
+Decl *Symbols::search(const std::string &name, bool fail) {
+  for (auto map : std::views::reverse(declarations)) {
+    auto d = map.find(name);
+    if (d != map.end()) {
+      return d->second;
+    }
+  }
+  if (fail) {
+    throw std::runtime_error("Unkown symbol: " + name);
+  }
+  return nullptr;
+}
+
+void Symbols::resolveTypes(bool final) {
+  for (auto &[_, type] : parser.types) {
+    if (type->kind == TypeKind::USER_TYPE) {
+      Decl *d = search(std::get<UserType>(type->data).iden, final);
+      if (!d) {
+        continue;
+      }
+      switch (d->kind) {
+      case DeclKind::STRUCT: {
+        type->kind = TypeKind::STRUCT;
+        type->data = StructType{d};
+        continue;
+      }
+      default: {
+        throw std::runtime_error("Invalid type: " + d->name.value);
+      }
+      }
+    }
+  }
+}
+
 void Symbols::open(ASTNode *node) {
   if (auto f = dynamic_cast<FuncStmt *>(node)) {
     auto &scope = declarations.back();
@@ -67,16 +120,17 @@ void Symbols::open(ASTNode *node) {
     }
   } else if (auto s = dynamic_cast<StructStmt *>(node)) {
     StructDecl data;
-    for (size_t i = 0; i < s->names.size(); i++) {
-      data.fieldTypes.push_back(s->types[i]);
-      data.fieldNames.push_back(s->names[i]);
-      data.fieldDefs.push_back(s->definitions[i]);
-    }
+    data.fieldTypes.insert(data.fieldTypes.begin(), s->types.begin(),
+                           s->types.end());
+    data.fieldNames.insert(data.fieldNames.begin(), s->names.begin(),
+                           s->names.end());
+    data.fieldDefs.insert(data.fieldDefs.begin(), s->definitions.begin(),
+                          s->definitions.end());
     s->decl = new Decl{.kind = DeclKind::STRUCT,
                        .name = s->name,
                        .data = data,
                        .region = nullptr};
-    declarations.back()[r->name.value] = s->decl;
+    declarations.back()[s->name.value] = s->decl;
   }
 }
 

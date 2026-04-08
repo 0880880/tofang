@@ -48,6 +48,14 @@ string TypeThing::toString() {
     FuncType f = std::get<FuncType>(data);
     return f.return_type->toString() + " func()";
   }
+  case TypeKind::GENERIC_FUNC: {
+    FuncType g = std::get<FuncType>(data);
+    return g.return_type->toString() + " func<>()";
+  }
+  case TypeKind::USER_TYPE: {
+    UserType u = std::get<UserType>(data);
+    return "u:" + u.iden;
+  }
   case TypeKind::REGION:
     return "region";
   case TypeKind::META:
@@ -248,8 +256,8 @@ TypeThing *TypeInterner::getTypeVar(const string &name) {
 TypeThing *TypeInterner::getStruct(Decl *s) {
   TypeKey key{};
   key.kind = TypeKind::STRUCT;
-  key.name = s->name.value; // I don't know, but name should be unique so this
-                            // can't be a problem
+  key.name = s->name.value; // I don't know, but name should be unique so
+                            // this can't be a problem
   StructDecl sd = std::get<StructDecl>(s->data);
   key.params.insert(key.params.begin(), sd.fieldTypes.begin(),
                     sd.fieldTypes.end());

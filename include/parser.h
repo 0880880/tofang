@@ -10,6 +10,8 @@ using namespace std;
 class Parser {
 
 public:
+  std::vector<std::pair<Lexer::Token, TypeThing *>> types;
+
   using Tokens = std::vector<Lexer::Token>;
   using Iter = Tokens::iterator;
   class Ptr {

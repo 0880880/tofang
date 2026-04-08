@@ -57,6 +57,7 @@ optional<TypeThing *> Parser::type(Ptr &p) {
     ++p;
     t = interner->getNullable(t);
   }
+  types.emplace_back(*p, t);
   return t;
 }
 
