@@ -267,6 +267,8 @@ public:
   std::vector<Lexer::Token> names;
   std::vector<Expr *> definitions;
 
+  Decl *decl = nullptr;
+
   StructStmt(Lexer::Token name) : name(std::move(name)) {}
 
   std::vector<ASTNode *> walk() override {
