@@ -3,6 +3,7 @@
 #include "decl.h"
 #include "territory_ast.h"
 #include "type.h"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
@@ -421,6 +422,25 @@ void TypeChecker::close(ASTNode *node) {
         break;
       }
     }
+  } else if (auto *str_init = dynamic_cast<StructInitExpr *>(node)) {
+    Decl *d = std::get<StructType>(str_init->struct_type->data).str;
+    auto &p = std::get<StructDecl>(d->data);
+    ssize_t last_index = -1;
+    for (Lexer::Token &t : str_init->names) {
+      auto it = std::ranges::find(p.fieldNames, t);
+      if (it != p.fieldNames.end()) {
+        ssize_t idx = std::distance(p.fieldNames.begin(), it);
+        if (idx > last_index) {
+          last_index = idx;
+        } else {
+          error("Struct initializer fields must appear in the order they were "
+                "defined.");
+        }
+      } else {
+        error("Unkown struct field: " + t.value);
+      }
+    }
+    str_init->t = interner->getStruct(d);
   } else if (auto *assign_stmt = dynamic_cast<AssignStmt *>(node)) {
 
     TypeThing *lhs = assign_stmt->type;

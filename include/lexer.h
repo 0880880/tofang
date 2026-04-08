@@ -34,6 +34,8 @@ public:
     Token(string type, string value)
         : type(std::move(std::move(type))), value(std::move(std::move(value))),
           user(false) {}
+
+    bool operator==(const Token &) const = default;
   };
 
   void token(string re, string type);
