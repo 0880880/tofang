@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ast_base.h"
 #include "decl_type.h"
 #include "lexer.h"
 #include "territory_ast.h"
@@ -9,8 +10,6 @@
 #include <string>
 #include <unordered_map>
 #include <variant>
-#include <vector>
-
 
 enum class DeclKind : uint8_t {
   VAR,
@@ -34,6 +33,7 @@ struct FuncDecl {
 struct StructDecl {
   std::vector<TypeThing *> fieldTypes;
   std::vector<std::string> fieldNames;
+  std::vector<Expr *> fieldDefs;
 };
 
 using DeclData = std::variant<VarDecl, FuncDecl, StructDecl>;

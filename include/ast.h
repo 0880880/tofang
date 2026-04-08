@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ast_base.h"
 #include "decl.h"
 #include "lexer.h"
 #include "territory_ast.h"
@@ -10,19 +11,6 @@
 #include <vector>
 
 using namespace std;
-
-class ASTNode {
-public:
-  virtual auto toString() -> string = 0;
-  virtual auto walk() -> std::vector<ASTNode *> = 0;
-  virtual ~ASTNode() = default;
-};
-
-class Expr : public ASTNode {
-public:
-  TypeThing *t = nullptr;
-  ~Expr() override = default;
-};
 
 class LiteralExpr : public Expr {
 public:
