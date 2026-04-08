@@ -346,6 +346,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
     p.expect("RPAREN");
     p.expect("LBRACE");
 
+    auto named = symbols->open(ifs);
     symbols->open(&ifs->body);
 
     while (!p.eof() && !p.is("RBRACE")) {
@@ -370,6 +371,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
         p.expect("RPAREN");
         p.expect("LBRACE");
 
+        symbols->open(cur);
         symbols->open(&cur->body);
 
         while (!p.eof() && !p.is("RBRACE")) {
@@ -390,6 +392,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
         p.expect("LBRACE");
         cur->elseStmt = new ElseStmt();
 
+        symbols->open(cur);
         symbols->open(&cur->elseStmt->body);
 
         while (!p.eof() && !p.is("RBRACE")) {
@@ -402,7 +405,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
       }
     }
 
-    return symbols->open(ifs);
+    return named;
   }
 
   if (p.is("KEYWORD") && (*p).value == "region") {
@@ -412,6 +415,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
     auto r = new RegionStmt(name);
     p.expect("LBRACE");
 
+    auto named = symbols->open(r);
     symbols->open(&r->body);
 
     while (!p.eof() && !p.is("RBRACE")) {
@@ -421,7 +425,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
     symbols->close(&r->body);
 
     p.expect("RBRACE");
-    return symbols->open(r);
+    return named;
   }
 
   if (p.is("KEYWORD") && (*p).value == "for") {
@@ -448,6 +452,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
     f->update = update;
     p.expect("LBRACE");
 
+    auto named = symbols->open(f);
     symbols->open(&f->body);
 
     while (!p.eof() && !p.is("RBRACE")) {
@@ -457,7 +462,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
     symbols->close(&f->body);
 
     p.expect("RBRACE");
-    return symbols->open(f);
+    return named;
   }
 
   if (auto ty = type(p)) {
@@ -492,6 +497,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
       p.expect("RPAREN");
       p.expect("LBRACE");
 
+      auto named = symbols->open(fn);
       symbols->open(&fn->body);
 
       while (!p.eof() && !p.is("RBRACE")) {
@@ -501,7 +507,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
       symbols->close(&fn->body);
 
       p.expect("RBRACE");
-      return symbols->open(fn);
+      return named;
     }
 
     if (p.is("LPAREN")) {
@@ -511,6 +517,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
 
       auto *fn = new FuncStmt(t, name);
 
+      auto named = symbols->open(fn);
       symbols->open(&fn->body);
 
       while (!p.eof() && !p.is("RBRACE")) {
@@ -520,7 +527,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
       symbols->close(&fn->body);
 
       p.expect("RBRACE");
-      return symbols->open(fn);
+      return named;
     }
   }
   Expr *e = expr(p).get();
