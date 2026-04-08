@@ -189,6 +189,9 @@ Named<Expr *> Parser::postfix(Ptr &p) {
         if (p.isV(">")) {
           break;
         }
+        if (!start) {
+          p.expect("COMMA");
+        }
         start = false;
         auto l = new LiteralExpr(LiteralExpr::Type::MetaType, *p);
         auto t = type(p);
@@ -203,6 +206,9 @@ Named<Expr *> Parser::postfix(Ptr &p) {
         if (p.is("RPAREN")) {
           break;
         }
+        if (!start) {
+          p.expect("COMMA");
+        }
         start = false;
         c->args.push_back(expr(p).get());
       }
@@ -215,6 +221,9 @@ Named<Expr *> Parser::postfix(Ptr &p) {
       while (start || p.is("COMMA")) {
         if (p.is("RPAREN")) {
           break;
+        }
+        if (!start) {
+          p.expect("COMMA");
         }
         start = false;
         c->args.push_back(expr(p).get());
@@ -237,6 +246,9 @@ Named<Expr *> Parser::postfix(Ptr &p) {
       while (start || p.is("COMMA")) {
         if (p.is("RBRACE")) {
           break;
+        }
+        if (!start) {
+          p.expect("COMMA");
         }
         start = false;
         in->names.push_back(*p);
@@ -486,6 +498,9 @@ Named<Stmt *> Parser::statement(Ptr &p) {
       while (start || p.is("COMMA")) {
         if (p.isV(">")) {
           break;
+        }
+        if (!start) {
+          p.expect("COMMA");
         }
         start = false;
         auto v = *p;
