@@ -19,15 +19,15 @@ string readFile(const fs::path &path) {
   buffer << file.rdbuf();
   return buffer.str();
 }
-void symbolWalk(ASTNode *node) {
-  Symbols::walkAstOpen(node);
+void symbolWalk(Symbols &symbols, ASTNode *node) {
+  symbols.open(node);
   for (auto sub : node->walk()) {
     if (!sub) {
       continue;
     }
-    symbolWalk(sub);
+    symbolWalk(symbols, sub);
   }
-  Symbols::walkAstClose(node);
+  symbols.close(node);
 }
 
 void regionWalk(Territory &territory, ASTNode *node) {
@@ -96,7 +96,9 @@ int main() {
 
   printAST(&p);
 
-  symbolWalk(&p);
+  Symbols sym;
+
+  symbolWalk(sym, &p);
 
   Territory territory;
 

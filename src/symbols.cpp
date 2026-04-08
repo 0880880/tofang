@@ -13,7 +13,7 @@ static void error(const string &msg) {
   exit(1);
 }
 
-void Symbols::walkAstOpen(ASTNode *node) {
+void Symbols::open(ASTNode *node) {
   if (auto f = dynamic_cast<FuncStmt *>(node)) {
     auto &scope = declarations.back();
     declarations.emplace_back();
@@ -80,7 +80,7 @@ void Symbols::walkAstOpen(ASTNode *node) {
   }
 }
 
-void Symbols::walkAstClose(ASTNode *node) {
+void Symbols::close(ASTNode *node) {
   if (dynamic_cast<FuncStmt *>(node) || dynamic_cast<BlockStmt *>(node)) {
     declarations.pop_back();
   }

@@ -2,7 +2,11 @@
 
 #include "ast.h"
 
-namespace Symbols {
-void walkAstOpen(ASTNode *node);
-void walkAstClose(ASTNode *node);
-} // namespace Symbols
+class Symbols {
+private:
+  deque<unordered_map<string, Decl *>> declarations = {{}};
+
+public:
+  void open(ASTNode *node);
+  void close(ASTNode *node);
+};

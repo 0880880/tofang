@@ -4,8 +4,6 @@
 
 using namespace std;
 
-deque<unordered_map<string, Decl *>> declarations = {{}};
-
 TypeThing *Decl::toType() {
   switch (kind) {
   case DeclKind::VAR: {
