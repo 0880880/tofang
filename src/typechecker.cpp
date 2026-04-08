@@ -427,7 +427,10 @@ void TypeChecker::close(ASTNode *node) {
     auto &p = std::get<StructDecl>(d->data);
     ssize_t last_index = -1;
     for (Lexer::Token &t : str_init->names) {
-      auto it = std::ranges::find(p.fieldNames, t);
+      auto it =
+          std::ranges::find_if(p.fieldNames, [t](const Lexer::Token &field) {
+            return field.value == t.value;
+          });
       if (it != p.fieldNames.end()) {
         ssize_t idx = std::distance(p.fieldNames.begin(), it);
         if (idx > last_index) {
