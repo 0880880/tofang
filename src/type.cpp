@@ -267,7 +267,7 @@ TypeThing *TypeInterner::getStruct(Decl *s) {
 
 TypeThing *TypeInterner::getUserType(const std::string &name) {
   TypeKey key{};
-  key.kind = TypeKind::STRUCT;
+  key.kind = TypeKind::USER_TYPE;
   key.name = name;
 
   auto it = table.find(key);
