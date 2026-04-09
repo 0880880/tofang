@@ -422,11 +422,46 @@ void TypeChecker::close(ASTNode *node) {
         break;
       }
     }
+  } else if (auto *str = dynamic_cast<StructStmt *>(node)) {
+    for (size_t i = 0; i < str->types.size(); ++i) {
+      TypeThing *lhs = str->types[i];
+      TypeThing *rhs = str->definitions[i]->t;
+
+      assert(lhs != nullptr);
+      assert(rhs != nullptr);
+
+      if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
+        goto defer_strct;
+      }
+
+      if (isNumeric(lhs) && isNumeric(rhs)) {
+        if (numOrder(lhs) >= numOrder(rhs)) {
+          rhs = lhs;
+        } else {
+          error("assignment type mismatch " + lhs->toString() + " = " +
+                rhs->toString());
+        }
+      }
+
+      if (lhs->kind == TypeKind::NULLABLE && rhs->kind != TypeKind::NULLABLE) {
+        rhs = interner->getNullable(rhs);
+      }
+
+      if (lhs == rhs) {
+        goto defer_strct;
+      }
+
+      error("Struct default value type mismatch " + str->types[i]->toString() +
+            " != " + str->definitions[i]->t->toString());
+
+    defer_strct:;
+    }
   } else if (auto *str_init = dynamic_cast<StructInitExpr *>(node)) {
     Decl *d = std::get<StructType>(str_init->struct_type->data).str;
     auto &p = std::get<StructDecl>(d->data);
     ssize_t last_index = -1;
-    for (Lexer::Token &t : str_init->names) {
+    for (size_t i = 0; i < str_init->names.size(); ++i) {
+      Lexer::Token &t = str_init->names[i];
       auto it =
           std::ranges::find_if(p.fieldNames, [t](const Lexer::Token &field) {
             return field.value == t.value;
@@ -435,6 +470,47 @@ void TypeChecker::close(ASTNode *node) {
         ssize_t idx = std::distance(p.fieldNames.begin(), it);
         if (idx > last_index) {
           last_index = idx;
+          TypeThing *lhs = p.fieldTypes[static_cast<size_t>(idx)];
+          TypeThing *rhs = str_init->values[i]->t;
+
+          assert(lhs != nullptr);
+          assert(rhs != nullptr);
+
+          if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
+            goto defer;
+          }
+
+          if (isNumeric(lhs) && isNumeric(rhs)) {
+            if (numOrder(lhs) >= numOrder(rhs)) {
+              rhs = lhs;
+            } else {
+              error("assignment type mismatch " + lhs->toString() + " = " +
+                    rhs->toString());
+            }
+          }
+
+          if (lhs->kind == TypeKind::NULLABLE &&
+              rhs->kind != TypeKind::NULLABLE) {
+            rhs = interner->getNullable(rhs);
+          }
+
+          if (lhs == rhs) {
+            goto defer;
+          }
+
+          {
+            TypeThing *sl = stripRegioned(lhs);
+            TypeThing *sr = stripRegioned(rhs);
+            if (sl == sr) {
+              goto defer;
+            }
+          }
+          // TODO check territory against stack struct init
+
+          error("Struct assignment type mismatch: " +
+                p.fieldTypes[static_cast<size_t>(idx)]->toString() +
+                " != " + str_init->values[i]->t->toString());
+        defer:;
         } else {
           error("Struct initializer fields must appear in the order they were "
                 "defined.");
@@ -508,7 +584,6 @@ void TypeChecker::close(ASTNode *node) {
 
     assign->t = rhs;
     assign->left->t = rhs;
-
   } else if (auto cal = dynamic_cast<CallExpr *>(node)) {
 
     if (auto *att = dynamic_cast<AttribExpr *>(cal->func)) {
