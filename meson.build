@@ -20,8 +20,11 @@ src = files(
   'main.cpp',
 )
 
+llvm_dep = dependency('llvm', method: 'config-tool', static: true, required: true)
+
 executable(
   'app',
   src,
   include_directories: inc,
-  )
+  dependencies: llvm_dep,
+)
