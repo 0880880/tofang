@@ -1,6 +1,7 @@
 #pragma once
 #include "ast.h"
 #include "lexer.h"
+#include <cassert>
 #include <deque>
 #include <iostream>
 #include <memory>
@@ -150,6 +151,8 @@ class Symbols {
 public:
   std::deque<std::unordered_map<std::string, Decl *>> declarations = {{}};
 
+  void taken(const std::string &name);
+
   template <typename T> Parser::Named<T> open(T node) {
     if (auto f = dynamic_cast<FuncStmt *>(node)) {
       auto &scope = declarations.back();
@@ -166,6 +169,7 @@ public:
                              .name = name,
                              .data = VarDecl{f->paramTypes[i]},
                              .region = nullptr};
+        taken(name.value);
         declarations.back()[name.value] = decl;
         fd.params.push_back(decl);
       }
@@ -174,18 +178,21 @@ public:
                    .name = f->name,
                    .data = fd,
                    .region = nullptr};
+      taken(f->name.value);
       scope[f->name.value] = f->decl;
     } else if (auto a = dynamic_cast<AssignStmt *>(node)) {
       a->decl = new Decl{.kind = DeclKind::VAR,
                          .name = a->name,
                          .data = VarDecl{a->type},
                          .region = nullptr};
+      taken(a->name.value);
       declarations.back()[a->name.value] = a->decl;
     } else if (auto r = dynamic_cast<RegionStmt *>(node)) {
       r->decl = new Decl{.kind = DeclKind::REGION,
                          .name = r->name,
                          .data = {},
                          .region = nullptr};
+      taken(r->name.value);
       declarations.back()[r->name.value] = r->decl;
     } else if (dynamic_cast<BlockStmt *>(node)) {
       declarations.emplace_back();
@@ -214,6 +221,7 @@ public:
                          .name = s->name,
                          .data = data,
                          .region = nullptr};
+      taken(s->name.value);
       declarations.back()[s->name.value] = s->decl;
     }
 
@@ -227,6 +235,8 @@ public:
 
     return Parser::Named<T>(node);
   }
+
+  inline void finish() { assert(declarations.size() == 1); }
 
 private:
   void resolveTypes(bool final = false);

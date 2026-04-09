@@ -22,6 +22,15 @@ Decl *Parser::search(const std::string &name, bool fail) {
   return nullptr;
 }
 
+void Symbols::taken(const std::string &name) {
+  for (auto map : std::views::reverse(declarations)) {
+    auto d = map.find(name);
+    if (d != map.end()) {
+      throw runtime_error("Name taken: " + name);
+    }
+  }
+}
+
 Parser::Parser() { symbols = std::make_unique<Symbols>(); }
 
 optional<TypeThing *> Parser::type(Ptr &p) {
