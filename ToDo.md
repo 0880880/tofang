@@ -6,4 +6,10 @@
 - ~Structs~
 - ~Error on taken symbols~
 - IR generation
+- Nicer errors
+- Scope blocks
+- Fix struct field lifetime checks
+- While loop
+- ++ -- +=  -= *= /= operators
+- Switch case
 - More ToDo
