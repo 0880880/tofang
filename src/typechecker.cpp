@@ -328,8 +328,7 @@ void TypeChecker::close(ASTNode *node) {
         break;
       } else if (op == "==") {
         // TODO should be better
-        if ((isNumeric(lhs) && !isNumeric(rhs)) ||
-            (!isNumeric(lhs) && isNumeric(rhs))) {
+        if (isNumeric(lhs) != isNumeric(rhs)) {
           error("both sides of equality operation must be comparable");
         }
         bin->t = type_bool;
