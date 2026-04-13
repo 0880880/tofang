@@ -249,6 +249,7 @@ Named<Expr *> Parser::postfix(Ptr &p) {
           in->struct_type = lit->typeValue;
         }
       } else {
+        delete in;
         throw runtime_error("Struct initializer LHS must be a type.");
       }
       bool start = true;
