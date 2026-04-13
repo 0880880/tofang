@@ -273,8 +273,7 @@ void TypeChecker::close(ASTNode *node) {
         if (!isNumeric(lhs) || !isNumeric(rhs)) {
           error("operands of aritmhetic operation must be numeric");
         }
-        if ((isUnsigned(lhs) && !isUnsigned(rhs)) ||
-            (!isUnsigned(lhs) && isUnsigned(rhs))) {
+        if (isUnsigned(lhs) != isUnsigned(rhs)) {
           error(
               "arithmetic operation between unsigned and non-unsigned type is "
               "invalid.");
