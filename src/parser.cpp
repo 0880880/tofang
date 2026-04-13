@@ -243,6 +243,7 @@ Named<Expr *> Parser::postfix(Ptr &p) {
       auto in = new StructInitExpr();
       if (auto lit = dynamic_cast<LiteralExpr *>(left)) {
         if (lit->type != LiteralExpr::Type::MetaType) {
+          delete in;
           throw runtime_error("Struct initializer LHS must be a type.");
         } else {
           in->struct_type = lit->typeValue;
