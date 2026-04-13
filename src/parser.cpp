@@ -351,6 +351,7 @@ Named<Stmt *> Parser::statement(Ptr &p) {
         str->definitions.push_back(expr(p).get());
         p.expect("SEMICOLON");
       } else {
+        delete str;
         throw runtime_error("Expected type inside struct " + name.value);
       }
     }
