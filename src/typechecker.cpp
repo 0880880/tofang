@@ -580,9 +580,6 @@ void TypeChecker::close(ASTNode *node) {
         break;
       }
     }
-
-    assign->t = rhs;
-    assign->left->t = rhs;
   } else if (auto cal = dynamic_cast<CallExpr *>(node)) {
 
     if (auto *att = dynamic_cast<AttribExpr *>(cal->func)) {
