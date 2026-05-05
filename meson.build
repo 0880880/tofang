@@ -11,6 +11,7 @@ inc = include_directories(
 )
 
 src = files(
+  'src/ast_gen.cpp',
   'src/decl.cpp',
   'src/lexer.cpp',
   'src/parser.cpp',
