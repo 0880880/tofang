@@ -5,11 +5,38 @@
 - ~Fix regioned type checking~
 - ~Structs~
 - ~Error on taken symbols~
-- IR generation
+- ~Remove REGIONED Type~
+- ~Make regions inside expressions~
+- ~Basic IR generation~
+- ~Public functions and structs~
+- ~Struct IR Generation~
+- ~Indexing type checking~
+- ~Dereferencing~
+- ~Indexing IR~
+- ~Functions in structs Parsing~
+- ~Rewrite a -> self.a in struct member functions~
+- ~Functions in structs Type Checking~
+- ~Functions in structs IR~
+- Definition level checks
+- Arrays
+- Strings
+- Import and STDLIB
+- Type Check pointer deref
+- Type Check struct attribute
+- lifetime.start/end stack allocation hints
 - Nicer errors
-- Scope blocks
+- Generic Function IR generation
+- Remove GroupingExpr
+- Defer
+- Public const variables
 - Fix struct field lifetime checks
 - While loop
 - ++ -- +=  -= *= /= operators
 - Switch case
 - More ToDo
+
+## non-ordered ToDo
+- Check for repeated function and struct fields/args
+- Check for self in member functions by user
+- Require Public Main
+- Add debugging
