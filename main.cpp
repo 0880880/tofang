@@ -3,97 +3,169 @@
 #include "lexer.h"
 #include "parser.h"
 #include "typechecker.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Verifier.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/CodeGen.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
+#include "llvm/TargetParser/Host.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <sstream>
 
+using namespace llvm;
+
 namespace fs = std::filesystem;
 using namespace std;
 
-string readFile(const fs::path &path) {
-  ifstream file(path);
-  stringstream buffer;
-  buffer << file.rdbuf();
-  return buffer.str();
+string readFile(const fs::path& path)
+{
+    ifstream file(path);
+    stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
 }
 
-void regionWalk(Territory &territory, ASTNode *node) {
-  territory.open(node);
+void regionWalk(Territory& territory, ASTNode* node)
+{
+    territory.open(node);
 
-  for (auto sub : node->walk()) {
-    if (!sub) {
-      continue;
+    for (auto sub : node->walk()) {
+        if (!sub) {
+            continue;
+        }
+        regionWalk(territory, sub);
     }
-    regionWalk(territory, sub);
-  }
 
-  territory.close(node);
+    territory.close(node);
 }
 
-void printAST(ASTNode *node, const string &spacing = "") {
-  cout << spacing << node->toString() << '\n';
-  auto s = spacing + "  ";
-  for (auto sub : node->walk()) {
-    printAST(sub, s);
-  }
+void printAST(ASTNode* node, const string& spacing = "")
+{
+    cout << spacing << node->toString() << '\n';
+    auto s = spacing + "  ";
+    for (auto sub : node->walk()) {
+        if (!sub) {
+            continue;
+        }
+        printAST(sub, s);
+    }
 }
 
-int main() {
-  Lexer lexer;
-  lexer.token("true|false", "BOOLEAN");
-  lexer.token("(?:[0-9]+\\.[0-9]+)|(?:\\.[0-9]+)", "DECIMAL");
-  lexer.token("[0-9]+", "INTEGER");
-  lexer.token(R"((?:"[^"]*"))", "STRING");
-  lexer.token("(?:'[^']')", "CHAR");
-  lexer.token("null", "NULL");
-  lexer.token("if|else|for|return|region|while|struct|class", "KEYWORD");
-  lexer.token("void|bool|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64", "PRIMITIVE");
-  lexer.token("[a-zA-Z_][a-zA-Z0-9_]*", "IDENTIFIER");
-  lexer.token("\\?", "QUESTION");
-  lexer.token("=", "EQUAL");
-  lexer.token("\\+\\+|--", "ASSIGN");
-  lexer.token("\\+|-|/"
-              "|\\*|@|&|^|\\||&&|\\|\\|==|\\!=|\\>|\\<|\\>=|\\<=|\\!",
-              "OP");
-  lexer.token(",", "COMMA");
-  lexer.token("\\.", "DOT");
-  lexer.token(":", "COLON");
-  lexer.token(";", "SEMICOLON");
-  lexer.token("\\(", "LPAREN");
-  lexer.token("\\)", "RPAREN");
-  lexer.token("\\{", "LBRACE");
-  lexer.token("\\}", "RBRACE");
-  lexer.token("\\[", "LBRACKET");
-  lexer.token("\\]", "RBRACKET");
-  lexer.token("\\<", "LCHEV");
-  lexer.token("\\>", "RCHEV");
+vector<Lexer::Token> tokenize(const string& source)
+{
 
-  auto source = readFile(fs::path("main.to"));
-  source = regex_replace(
-      source, regex{"(?://[^\n]*)|(?:/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/)"}, "");
+    Lexer lexer;
+    lexer.token("true|false", "BOOLEAN");
+    lexer.token("(?:[0-9]+\\.[0-9]+)|(?:\\.[0-9]+)", "DECIMAL");
+    lexer.token("[0-9]+", "INTEGER");
+    lexer.token(R"((?:"[^"]*"))", "STRING");
+    lexer.token("(?:'[^']')", "CHAR");
+    lexer.token("null", "NULL");
+    lexer.token("if|else|for|return|region|while|struct|class|public", "KEYWORD");
+    lexer.token("void|bool|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64", "PRIMITIVE");
+    lexer.token("[a-zA-Z_][a-zA-Z0-9_]*", "IDENTIFIER");
+    lexer.token("\\?", "QUESTION");
+    lexer.token("=", "EQUAL");
+    lexer.token("\\+\\+|--", "ASSIGN");
+    lexer.token("\\+|-|/"
+                "|\\*|@|&|^|\\||&&|\\|\\|==|\\!=|\\>|\\<|\\>=|\\<=|\\!",
+        "OP");
+    lexer.token(",", "COMMA");
+    lexer.token("\\.", "DOT");
+    lexer.token(":", "COLON");
+    lexer.token(";", "SEMICOLON");
+    lexer.token("\\(", "LPAREN");
+    lexer.token("\\)", "RPAREN");
+    lexer.token("\\{", "LBRACE");
+    lexer.token("\\}", "RBRACE");
+    lexer.token("\\[", "LBRACKET");
+    lexer.token("\\]", "RBRACKET");
+    lexer.token("\\<", "LCHEV");
+    lexer.token("\\>", "RCHEV");
 
-  auto tokens = lexer.tokenize(source);
+    return lexer.tokenize(source);
+}
 
-  for (Lexer::Token &t : tokens) {
-    cout << t.type << ":" << t.value << " ";
-  }
-  cout << '\n';
+Program passProgram(vector<Lexer::Token> tokens)
+{
+    Parser parser;
 
-  Parser parser;
+    Program p = parser.buildAST(std::move(tokens));
 
-  Program p = parser.buildAST(tokens);
+    printAST(&p);
 
-  printAST(&p);
+    TypeChecker tc;
 
-  Territory territory;
+    tc.walk(&p);
 
-  regionWalk(territory, &p);
+    Territory territory;
 
-  TypeChecker tc;
+    regionWalk(territory, &p);
 
-  tc.walk(&p);
+    return p;
+}
 
-  return 0;
+void generateObject(Module& mod)
+{
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+
+    Triple target_triple(sys::getDefaultTargetTriple());
+    mod.setTargetTriple(target_triple);
+
+    std::string err;
+    auto target = TargetRegistry::lookupTarget(target_triple, err);
+
+    TargetOptions opt;
+    auto rm = std::optional<Reloc::Model>();
+    auto target_machine = target->createTargetMachine(target_triple, "generic", "", opt, rm);
+
+    mod.setDataLayout(target_machine->createDataLayout());
+
+    std::error_code ec;
+    raw_fd_ostream out("output.o", ec, sys::fs::OF_None);
+    legacy::PassManager pm;
+    target_machine->addPassesToEmitFile(pm, out, nullptr,
+        CodeGenFileType::ObjectFile);
+    pm.run(mod);
+}
+
+int main()
+{
+
+    auto source = readFile(fs::path("main.to"));
+    source = regex_replace(
+        source, regex { "(?://[^\n]*)|(?:/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/)" }, "");
+
+    auto tokens = tokenize(source);
+
+    auto program = passProgram(tokens);
+
+    LLVMContext ctx;
+    Module mod("demo", ctx);
+    IRBuilder<> builder(ctx);
+
+    IRContext irc = IRContext { ctx, builder, mod };
+    program.codegen(irc);
+
+    mod.print(outs(), nullptr);
+    if (verifyModule(mod, &errs())) {
+        errs() << "Invalid module!\n";
+        return 1;
+    }
+
+    generateObject(mod);
+
+    return 0;
 }
