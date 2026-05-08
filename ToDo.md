@@ -17,7 +17,7 @@
 - ~Rewrite a -> self.a in struct member functions~
 - ~Functions in structs Type Checking~
 - ~Functions in structs IR~
-- Definition level checks
+- ~Definition level checks~
 - Arrays
 - Strings
 - Import and STDLIB

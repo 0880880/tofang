@@ -184,8 +184,20 @@ private:
 
     std::deque<std::deque<FuncDefer>> defers = { {} };
 
+    struct Scope {
+        const Decl* decl = nullptr;
+        std::unordered_map<std::string, Decl*> declarations;
+
+        explicit Scope(const Decl* decl)
+            : decl(decl)
+        {
+        }
+    };
+
 public:
-    std::deque<std::unordered_map<std::string, Decl*>> declarations = { {} };
+    std::deque<Scope>
+        declarations
+        = { Scope { nullptr } };
 
     void taken(const std::string& name);
 
@@ -206,7 +218,7 @@ public:
             FuncStmt* f = def.func;
             FuncDecl fd = std::get<FuncDecl>(f->decl->data);
             for (size_t i = 0; i < fd.params.size(); ++i) {
-                declarations.back()[fd.params[i]->name.value] = fd.params[i];
+                declarations.back().declarations[fd.params[i]->name.value] = fd.params[i];
             }
             for (auto& ca : def.args) {
                 auto& arg = ca.node;
@@ -248,8 +260,8 @@ public:
         if (auto v = dynamic_cast<VariableExpr*>(node)) {
             bool found = false;
             for (auto m : std::views::reverse(declarations)) {
-                auto d = m.find(v->name.value);
-                if (d != m.end()) {
+                auto d = m.declarations.find(v->name.value);
+                if (d != m.declarations.end()) {
                     found = true;
                     v->decl = d->second;
                     break;
@@ -278,6 +290,9 @@ public:
     Parser::Named<Stmt*> open(Stmt* node)
     {
         if (auto f = dynamic_cast<FuncStmt*>(node)) {
+            if (declarations.size() > 2) {
+                error("Functions can only be declared inside a struct or inside global scope");
+            }
             auto& scope = declarations.back();
             FuncDecl fd = {};
 
@@ -295,7 +310,7 @@ public:
                     .data = VarDecl { self_type, .arg_index = 0 },
                     .func_param = true
                 };
-                declarations.back()["self"] = self_decl;
+                declarations.back().declarations["self"] = self_decl;
                 fd.params.push_back(self_decl);
             }
 
@@ -326,8 +341,11 @@ public:
             };
             current_func = f->decl;
             taken(f->name.value);
-            scope[f->name.value] = f->decl;
+            scope.declarations[f->name.value] = f->decl;
         } else if (auto s = dynamic_cast<StructStmt*>(node)) {
+            if (declarations.size() > 1) {
+                error("Cannot declare struct inside any other block");
+            }
             StructDecl data;
             data.fieldTypes.insert(data.fieldTypes.begin(), s->types.begin(),
                 s->types.end());
@@ -343,7 +361,7 @@ public:
             };
             taken(s->name.value);
             current_struct = s->decl;
-            declarations.back()[s->name.value] = s->decl;
+            declarations.back().declarations[s->name.value] = s->decl;
             declarations.emplace_back();
         } else if (defer_depth == 0) {
             if (auto a = dynamic_cast<AssignStmt*>(node)) {
@@ -354,17 +372,28 @@ public:
                     .visibility = a->visibility,
                 };
                 taken(a->name.value);
-                declarations.back()[a->name.value] = a->decl;
+                declarations.back().declarations[a->name.value] = a->decl;
             } else if (auto r = dynamic_cast<RegionStmt*>(node)) {
+                if (declarations.size() == 0) {
+                    error("Cannot define region in global scope.");
+                } else if (declarations.back().decl->kind == DeclKind::STRUCT) {
+                    error("Cannot define region inside a struct.");
+                }
                 r->decl = new Decl {
                     .kind = DeclKind::REGION,
                     .name = r->name,
                     .data = {},
                 };
                 taken(r->name.value);
-                declarations.back()[r->name.value] = r->decl;
+                declarations.back().declarations[r->name.value] = r->decl;
             } else if (dynamic_cast<BlockStmt*>(node)) {
                 declarations.emplace_back();
+            } else if (auto r = dynamic_cast<ExprStmt*>(node)) {
+                if (declarations.size() == 0) {
+                    error("Statement cannot be in global scope.");
+                } else if (declarations.back().decl->kind == DeclKind::STRUCT) {
+                    error("Statement cannot be inside a struct.");
+                }
             }
         } else if (defer_depth != 0) {
             defers.back().back().args.push_back({ .close = false, .node = node });
