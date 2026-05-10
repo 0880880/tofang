@@ -77,6 +77,17 @@ optional<TypeThing*> Parser::type(Ptr& p)
         if (p.is("OP") && p.isV("*")) {
             ++p;
             t = interner->getPointer(t);
+        } else if (p.is("LBRACKET")) {
+            ++p;
+            int size = std::stoi((*p).value);
+            p.expect("INTEGER");
+            p.expect("RBRACKET");
+            if (size == 0) {
+                error("Array size cannot be zero.");
+            } else if (size < 0) {
+                error("Array size cannot be negative.");
+            }
+            t = interner->getArray(t, size);
         } else {
             break;
         }
