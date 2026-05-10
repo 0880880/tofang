@@ -65,6 +65,7 @@ public:
 
 class ArrayExpr : public Expr {
 public:
+    TypeThing* arr_type;
     std::vector<Expr*> elements;
 
     ArrayExpr() { }
@@ -77,7 +78,7 @@ public:
         return items;
     }
 
-    string toString() override { return "ArrayExpr[" + std::to_string(elements.size()) + "]"; }
+    string toString() override { return "ArrayExpr<" + arr_type->toString() + ">[" + std::to_string(elements.size()) + "]"; }
 
     llvm::Value* codegen(IRContext& ir) override;
 };

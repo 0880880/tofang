@@ -184,23 +184,6 @@ Named<Expr*> Parser::primary(Ptr& p)
         p.expect("RPAREN");
         return symbols->open(new GroupingExpr(inner));
     }
-    if (p.is("LBRACE")) {
-        ++p;
-        bool start = true;
-        ArrayExpr* arr = new ArrayExpr();
-        while (start || p.is("COMMA")) {
-            if (p.is("RBRACE")) {
-                break;
-            }
-            if (!start) {
-                p.expect("COMMA");
-            }
-            start = false;
-            arr->elements.push_back(expr(p).get());
-        }
-        ++p;
-        return symbols->open(arr);
-    }
 
     throw runtime_error("Unexpected token in primary(): " + (*p).type + "  L" + to_string((*p).sourceLineStart));
 }
@@ -269,35 +252,52 @@ Named<Expr*> Parser::postfix(Ptr& p)
             ++p;
             left = c;
         } else if (p.is("LBRACE")) {
-            auto in = new StructInitExpr();
             if (auto lit = dynamic_cast<LiteralExpr*>(left)) {
                 if (lit->type != LiteralExpr::Type::MetaType) {
-                    delete in;
-                    throw runtime_error("Struct initializer LHS must be a type.");
-                } else {
+                    throw runtime_error("Initializer LHS must be a type.");
+                } else if (lit->typeValue->kind == TypeKind::USER_TYPE) {
+                    auto in = new StructInitExpr();
                     in->struct_type = lit->typeValue;
+                    bool start = true;
+                    ++p;
+                    while (start || p.is("COMMA")) {
+                        if (p.is("RBRACE")) {
+                            break;
+                        }
+                        if (!start) {
+                            p.expect("COMMA");
+                        }
+                        start = false;
+                        in->names.push_back(*p);
+                        p.expect("IDENTIFIER");
+                        p.expect("EQUAL");
+                        in->values.push_back(expr(p).get());
+                    }
+                    ++p;
+                    left = in;
+                } else if (lit->typeValue->kind == TypeKind::ARRAY) {
+                    ArrayExpr* arr = new ArrayExpr();
+                    arr->arr_type = lit->typeValue;
+                    ++p;
+                    bool start = true;
+                    while (start || p.is("COMMA")) {
+                        if (p.is("RBRACE")) {
+                            break;
+                        }
+                        if (!start) {
+                            p.expect("COMMA");
+                        }
+                        start = false;
+                        arr->elements.push_back(expr(p).get());
+                    }
+                    ++p;
+                    left = arr;
+                } else {
+                    throw runtime_error("Invalid initializer: Only array and struct initializers are allowed.");
                 }
             } else {
-                delete in;
-                throw runtime_error("Struct initializer LHS must be a type.");
+                throw runtime_error("Initializer LHS must be a type.");
             }
-            bool start = true;
-            ++p;
-            while (start || p.is("COMMA")) {
-                if (p.is("RBRACE")) {
-                    break;
-                }
-                if (!start) {
-                    p.expect("COMMA");
-                }
-                start = false;
-                in->names.push_back(*p);
-                p.expect("IDENTIFIER");
-                p.expect("EQUAL");
-                in->values.push_back(expr(p).get());
-            }
-            ++p;
-            left = in;
         } else {
             break;
         }
