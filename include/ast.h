@@ -63,6 +63,24 @@ public:
     llvm::Value* codegen(IRContext& ir) override;
 };
 
+class ArrayExpr : public Expr {
+public:
+    std::vector<Expr*> elements;
+
+    ArrayExpr() { }
+
+    std::vector<ASTNode*> walk() override
+    {
+        std::vector<ASTNode*> items;
+        items.reserve(elements.size());
+        items.insert(items.begin(), elements.begin(), elements.end());
+        return items;
+    }
+
+    string toString() override { return "ArrayExpr[" + std::to_string(elements.size()) + "]"; }
+
+    llvm::Value* codegen(IRContext& ir) override;
+};
 class BinaryExpr : public Expr {
 public:
     Expr* left = nullptr;
