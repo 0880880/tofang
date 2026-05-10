@@ -13,7 +13,7 @@ using Named = Parser::Named<T>;
 
 Decl* Parser::search(const std::string& name, bool fail)
 {
-    for (auto map : std::views::reverse(symbols->declarations)) {
+    for (auto& [_, map] : std::views::reverse(symbols->declarations)) {
         auto d = map.find(name);
         if (d != map.end()) {
             return d->second;
@@ -27,7 +27,7 @@ Decl* Parser::search(const std::string& name, bool fail)
 
 void Symbols::taken(const std::string& name)
 {
-    for (auto map : std::views::reverse(declarations)) {
+    for (auto& [_, map] : std::views::reverse(declarations)) {
         auto d = map.find(name);
         if (d != map.end()) {
             throw runtime_error("Name taken: " + name);
