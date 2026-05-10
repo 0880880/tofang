@@ -647,6 +647,13 @@ void TypeChecker::close(ASTNode* node)
         } else {
             error("Cannot index unexpected type " + idx->arr->t->toString());
         }
+    } else if (auto* arr = dynamic_cast<ArrayExpr*>(node)) {
+        TypeThing* t = std::get<ArrType>(arr->arr_type->data).element;
+        for (auto* e : arr->elements) {
+            if (e->t != t) {
+                error("Array type inconsistency " + t->toString() + " != " + e->t->toString());
+            }
+        }
     }
 }
 
