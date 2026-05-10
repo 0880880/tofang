@@ -9,6 +9,7 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Linker/Linker.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/FileSystem.h"
@@ -20,6 +21,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <regex>
 #include <sstream>
 
@@ -97,13 +99,24 @@ vector<Lexer::Token> tokenize(const string& source)
     return lexer.tokenize(source);
 }
 
-Program passProgram(vector<Lexer::Token> tokens)
+struct ProgramData {
+    Program program;
+    Symbols* symbols;
+};
+
+ProgramData passProgram(vector<Lexer::Token> tokens, Symbols* builtin_symbols)
 {
+    ProgramData d;
+
     Parser parser;
+
+    if (builtin_symbols) {
+        parser.symbols->join(builtin_symbols);
+    }
 
     Program p = parser.buildAST(std::move(tokens));
 
-    printAST(&p);
+    d.symbols = new Symbols(*parser.symbols);
 
     TypeChecker tc;
 
@@ -113,7 +126,8 @@ Program passProgram(vector<Lexer::Token> tokens)
 
     regionWalk(territory, &p);
 
-    return p;
+    d.program = p;
+    return d;
 }
 
 void generateObject(Module& mod)
@@ -141,19 +155,15 @@ void generateObject(Module& mod)
     pm.run(mod);
 }
 
-int main()
+ProgramData compile(LLVMContext& ctx, Module& mod, std::string source, Symbols* builtin_symbols = nullptr)
 {
-
-    auto source = readFile(fs::path("main.to"));
     source = regex_replace(
         source, regex { "(?://[^\n]*)|(?:/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/)" }, "");
-
     auto tokens = tokenize(source);
 
-    auto program = passProgram(tokens);
+    auto pdata = passProgram(tokens, builtin_symbols);
+    auto& program = pdata.program;
 
-    LLVMContext ctx;
-    Module mod("demo", ctx);
     IRBuilder<> builder(ctx);
 
     IRContext irc = IRContext { ctx, builder, mod };
@@ -162,10 +172,30 @@ int main()
     mod.print(outs(), nullptr);
     if (verifyModule(mod, &errs())) {
         errs() << "Invalid module!\n";
-        return 1;
     }
 
-    generateObject(mod);
+    return pdata;
+}
+
+int main()
+{
+
+    auto source = readFile(fs::path("main.to"));
+
+    LLVMContext ctx;
+
+    std::unique_ptr<Module> builtins = std::make_unique<Module>("BUILTINS", ctx);
+
+    auto builtins_data = compile(ctx, *builtins, R"()");
+
+    std::unique_ptr<Module>
+        main = std::make_unique<Module>("main.to", ctx);
+
+    Linker::linkModules(*main, std::move(builtins));
+
+    compile(ctx, *main, source, builtins_data.symbols);
+
+    generateObject(*main);
 
     return 0;
 }
