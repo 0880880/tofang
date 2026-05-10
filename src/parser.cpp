@@ -184,6 +184,23 @@ Named<Expr*> Parser::primary(Ptr& p)
         p.expect("RPAREN");
         return symbols->open(new GroupingExpr(inner));
     }
+    if (p.is("LBRACE")) {
+        ++p;
+        bool start = true;
+        ArrayExpr* arr = new ArrayExpr();
+        while (start || p.is("COMMA")) {
+            if (p.is("RBRACE")) {
+                break;
+            }
+            if (!start) {
+                p.expect("COMMA");
+            }
+            start = false;
+            arr->elements.push_back(expr(p).get());
+        }
+        ++p;
+        return symbols->open(arr);
+    }
 
     throw runtime_error("Unexpected token in primary(): " + (*p).type + "  L" + to_string((*p).sourceLineStart));
 }
