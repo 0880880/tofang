@@ -200,6 +200,11 @@ public:
 
     void taken(const std::string& name);
 
+    void join(const Symbols* other)
+    {
+        declarations[0].declarations.insert(other->declarations[0].declarations.begin(), other->declarations[0].declarations.end());
+    }
+
     void pushDeferScope()
     {
         defers.push_back({});
