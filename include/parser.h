@@ -33,6 +33,7 @@ concept ASTNodePtr = std::is_pointer_v<T> && std::derived_from<std::remove_point
 class Parser {
 
 public:
+    std::unique_ptr<Symbols> symbols;
     std::vector<std::pair<Lexer::Token, TypeThing*>> types;
 
     Parser();
@@ -151,8 +152,6 @@ public:
     Program buildAST(vector<Lexer::Token> tokens);
 
 private:
-    std::unique_ptr<Symbols> symbols;
-
     std::optional<TypeThing*> type(Ptr& p);
     Named<Expr*> primary(Ptr& p);
     Named<Expr*> postfix(Ptr& p);
