@@ -40,7 +40,7 @@ struct StructDecl {
     std::vector<TypeThing*> fieldTypes;
     std::vector<Lexer::Token> fieldNames;
     std::vector<Expr*> fieldDefs;
-    std::vector<FuncStmt*> methods;
+    std::vector<Decl*> methods;
     llvm::StructType* llvm = nullptr;
 };
 

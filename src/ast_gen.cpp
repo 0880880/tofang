@@ -244,7 +244,7 @@ llvm::Value* AttribExpr::codegen(IRContext& ir)
                 if (!ir.unpack_stored) {
                     throw runtime_error("Invalid");
                 } else {
-                    return std::get<FuncDecl>(ddata.methods[i]->decl->data).llvm;
+                    return std::get<FuncDecl>(ddata.methods[i]->data).llvm;
                 }
             }
         }

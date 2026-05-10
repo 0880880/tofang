@@ -298,7 +298,6 @@ public:
 
             if (current_struct) {
                 fd.parentStruct = current_struct;
-                std::get<StructDecl>(current_struct->data).methods.push_back(f);
 
                 auto* self_type = interner->getPointer(fd.parentStruct->toType());
                 auto* self_decl = new Decl {
@@ -339,6 +338,9 @@ public:
                 .data = fd,
                 .visibility = f->visibility,
             };
+            if (current_struct) {
+                std::get<StructDecl>(current_struct->data).methods.push_back(f->decl);
+            }
             current_func = f->decl;
             taken(f->name.value);
             scope.declarations[f->name.value] = f->decl;

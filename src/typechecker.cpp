@@ -622,12 +622,22 @@ void TypeChecker::close(ASTNode* node)
                 }
             }
             for (unsigned int i = 0; i < ddata.methods.size(); i++) {
-                auto* met = ddata.methods[i];
+                auto& met = std::get<FuncDecl>(ddata.methods[i]->data);
                 if (ddata.methods[i]->name.value == att->bar.value) {
-                    if (met->genericParams.empty()) {
-                        att->t = interner->getFunction(met->paramTypes, met->returnType);
+                    if (met.genericParams.empty()) {
+                        std::vector<TypeThing*> paramTypes;
+                        paramTypes.reserve(met.params.size());
+                        for (auto* p : met.params) {
+                            paramTypes.push_back(std::get<VarDecl>(p->data).type);
+                        }
+                        att->t = interner->getFunction(paramTypes, met.returnType);
                     } else {
-                        att->t = interner->getGenericFunction(met->genericParams, met->paramTypes, met->returnType);
+                        std::vector<TypeThing*> paramTypes;
+                        paramTypes.reserve(met.params.size());
+                        for (auto* p : met.params) {
+                            paramTypes.push_back(std::get<VarDecl>(p->data).type);
+                        }
+                        att->t = interner->getGenericFunction(met.genericParams, paramTypes, met.returnType);
                     }
                     return;
                 }
