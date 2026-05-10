@@ -235,8 +235,6 @@ llvm::Value* AttribExpr::codegen(IRContext& ir)
         _.packStored();
         lhs = foo->codegen(ir);
     }
-    std::cout << foo->t->toString() << std::endl;
-    std::cout << bar.value << std::endl;
     if (foo->t->kind == TypeKind::STRUCT) {
         auto* decl = std::get<StructType>(foo->t->data).str;
         auto& ddata = std::get<StructDecl>(decl->data);
@@ -329,7 +327,6 @@ llvm::Value* CallExpr::codegen(IRContext& ir)
         llvm_args.push_back(a->codegen(ir));
     }
 
-    std::cout << " Well well well : " << l << std::endl;
     auto* f = llvm::dyn_cast<llvm::Function>(l);
     return ir.builder.CreateCall(f, llvm_args);
 }
