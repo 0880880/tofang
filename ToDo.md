@@ -18,7 +18,7 @@
 - ~Functions in structs Type Checking~
 - ~Functions in structs IR~
 - ~Definition level checks~
-- Arrays
+- ~Arrays~
 - Strings
 - Import and STDLIB
 - Type Check pointer deref
