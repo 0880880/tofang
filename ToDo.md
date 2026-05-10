@@ -19,8 +19,8 @@
 - ~Functions in structs IR~
 - ~Definition level checks~
 - ~Arrays~
-- Strings
 - Import and STDLIB
+- Strings
 - Type Check pointer deref
 - Type Check struct attribute
 - lifetime.start/end stack allocation hints
