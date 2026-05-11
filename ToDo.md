@@ -19,7 +19,7 @@
 - ~Functions in structs IR~
 - ~Definition level checks~
 - ~Arrays~
-- Import and STDLIB
+- ~Import and STDLIB~
 - Strings
 - Type Check pointer deref
 - Type Check struct attribute
