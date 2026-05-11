@@ -203,7 +203,11 @@ public:
 
     void join(const Symbols* other)
     {
-        declarations[0].declarations.insert(other->declarations[0].declarations.begin(), other->declarations[0].declarations.end());
+        for (auto [k, v] : other->declarations[0].declarations) {
+            if (v->visibility == Visibility::PUBLIC) {
+                declarations[0].declarations[k] = v;
+            }
+        }
     }
 
     void pushDeferScope()
