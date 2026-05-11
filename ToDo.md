@@ -32,6 +32,7 @@
 - Fix struct field lifetime checks
 - While loop
 - ++ -- +=  -= *= /= operators
+- Hex/Binary integer literals
 - Switch case
 - More ToDo
 
