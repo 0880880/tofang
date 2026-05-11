@@ -685,6 +685,25 @@ Named<Stmt*> Parser::statement(Ptr& p)
         return named;
     }
 
+    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "import") {
+        ++p;
+        bool start = true;
+        ImportStmt* imp = new ImportStmt();
+        while (start || p.is("DOT")) {
+            if (p.is("SEMICOLON")) {
+                break;
+            }
+            if (!start) {
+                p.expect("DOT");
+            }
+            start = false;
+            imp->path.push_back((*p).value);
+            p.expect("IDENTIFIER");
+        }
+        p.expect("SEMICOLON");
+        return symbols->open(imp);
+    }
+
     if (auto ty = type(p)) {
         auto t = *ty;
 
