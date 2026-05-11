@@ -31,9 +31,9 @@ private:
 
     void regionWalk(Territory& territory, ASTNode* node);
 
-    vector<Lexer::Token> tokenize(const string& source);
+    void printAST(ASTNode* node, const string& spacing = "");
 
-    ProgramData createProgram(vector<Lexer::Token> tokens, Symbols* builtin_symbols);
+    vector<Lexer::Token> tokenize(const string& source);
 
 public:
     Compiler()
