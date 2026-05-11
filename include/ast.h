@@ -535,6 +535,17 @@ public:
     llvm::Value* codegen(IRContext& ir) override;
 };
 
+class ImportStmt : public Stmt {
+public:
+    std::vector<std::string> path;
+
+    std::vector<ASTNode*> walk() override { return {}; }
+
+    string toString() override { return "ImportStmt(" + path[path.size() - 1] + ")"; }
+
+    llvm::Value* codegen(IRContext& ir) override;
+};
+
 class Program : public Stmt {
 public:
     vector<Stmt*> statements;
