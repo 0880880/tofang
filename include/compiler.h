@@ -1,15 +1,17 @@
 #pragma once
 
 #include "ast.h"
+#include "ast_base.h"
 #include "include/territory.h"
 #include "lexer.h"
-#include "parser.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/Linker/Linker.h"
+
+struct Symbols;
 
 struct CompileResult {
     llvm::Module* mod;
@@ -28,8 +30,6 @@ private:
     CompileResult builtins;
 
     void regionWalk(Territory& territory, ASTNode* node);
-
-    void printAST(ASTNode* node, const string& spacing = "");
 
     vector<Lexer::Token> tokenize(const string& source);
 

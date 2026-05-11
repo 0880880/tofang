@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "parser.h"
 #include "typechecker.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/CodeGen.h"
@@ -9,6 +10,7 @@
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+#include <iostream>
 #include <regex>
 
 using namespace llvm;
@@ -74,32 +76,6 @@ vector<Lexer::Token> Compiler::tokenize(const string& source)
     return lexer.tokenize(source);
 }
 
-Compiler::ProgramData Compiler::createProgram(vector<Lexer::Token> tokens, Symbols* builtin_symbols)
-{
-    Compiler::ProgramData d;
-
-    Parser parser;
-
-    if (builtin_symbols) {
-        parser.symbols->join(builtin_symbols);
-    }
-
-    Program p = parser.buildAST(std::move(tokens));
-
-    d.symbols = new Symbols(*parser.symbols);
-
-    TypeChecker tc;
-
-    tc.walk(&p);
-
-    Territory territory;
-
-    regionWalk(territory, &p);
-
-    d.program = p;
-    return d;
-}
-
 void Compiler::generateObject(Module& mod)
 {
     InitializeNativeTarget();
@@ -135,8 +111,25 @@ CompileResult Compiler::compile(std::string name, std::string source)
 
     Linker::linkModules(*mod, std::move(CloneModule(*builtins.mod)));
 
-    auto pdata = createProgram(tokens, builtins.symbols);
-    auto& program = pdata.program;
+    Compiler::ProgramData pdata;
+
+    Parser parser;
+
+    if (builtins.symbols) {
+        parser.symbols->join(builtins.symbols);
+    }
+
+    Program program = parser.buildAST(std::move(tokens), this, *mod);
+
+    pdata.symbols = new Symbols(*parser.symbols);
+
+    TypeChecker tc;
+
+    tc.walk(&program);
+
+    Territory territory;
+
+    regionWalk(territory, &program);
 
     IRBuilder<> builder(ctx);
 

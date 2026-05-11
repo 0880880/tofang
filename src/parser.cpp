@@ -2,10 +2,18 @@
 #include "ast.h"
 #include "decl.h"
 #include "type.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 #include <cassert>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+
+namespace fs = std::filesystem;
+using namespace std;
 
 using Ptr = Parser::Ptr;
 template <typename T>
@@ -726,7 +734,15 @@ Named<Stmt*> Parser::statement(Ptr& p)
     throw std::runtime_error("Unexpected token in statement(): " + (*p).type);
 }
 
-Program Parser::buildAST(Tokens tokens)
+string readFile(const fs::path& path)
+{
+    ifstream file(path);
+    stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
+Program Parser::buildAST(Tokens tokens, Compiler* compiler, llvm::Module& module)
 {
     Program prog;
 
@@ -734,7 +750,28 @@ Program Parser::buildAST(Tokens tokens)
     Ptr ptr(it, tokens.end());
 
     while (it != tokens.end()) {
-        prog.statements.push_back(symbols->close(statement(ptr).get()).get());
+        Stmt* stmt = symbols->close(statement(ptr).get()).get();
+        if (auto* import = dynamic_cast<ImportStmt*>(stmt)) {
+            fs::path path = std::filesystem::current_path();
+            std::string path_display;
+            for (auto& r : import->path) {
+                if (r != *import->path.begin()) {
+                    path_display.append(".");
+                }
+                path_display.append(r);
+            }
+            for (auto& r : import->path) {
+                path /= r;
+                if (!fs::exists(path)) {
+                    error("Import error: cannot find module " + path_display);
+                }
+            }
+            std::string source = readFile(path);
+            auto res = compiler->compile(import->path[import->path.size() - 1], source);
+            symbols->join(res.symbols);
+            llvm::Linker::linkModules(module, std::move(llvm::CloneModule(*res.mod)));
+        }
+        prog.statements.push_back(stmt);
     }
     symbols->flushDefers();
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "ast.h"
+#include "compiler.h"
 #include "decl.h"
 #include "lexer.h"
 #include "type.h"
@@ -149,7 +150,7 @@ public:
         }
     };
 
-    Program buildAST(vector<Lexer::Token> tokens);
+    Program buildAST(vector<Lexer::Token> tokens, Compiler* compiler, llvm::Module& module);
 
 private:
     std::optional<TypeThing*> type(Ptr& p);
