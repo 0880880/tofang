@@ -14,8 +14,8 @@
 struct Symbols;
 
 struct CompileResult {
-    llvm::Module* mod;
-    Symbols* symbols;
+    llvm::Module* mod = nullptr;
+    Symbols* symbols = nullptr;
 };
 
 class Compiler {
