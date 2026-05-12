@@ -559,6 +559,9 @@ Named<Stmt*> Parser::statement(Ptr& p)
                 throw runtime_error("Expected type inside struct " + name.value);
             }
         }
+        if (!str_named) {
+            str_named = symbols->open(str);
+        }
         symbols->flushDefers();
         symbols->popDeferScope();
         p.expect("RBRACE");
