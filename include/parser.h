@@ -223,8 +223,8 @@ public:
     void flushDefers()
     {
         for (auto& def : defers.back()) {
-            declarations.emplace_back();
             FuncStmt* f = def.func;
+            declarations.emplace_back(f->decl);
             FuncDecl fd = std::get<FuncDecl>(f->decl->data);
             for (size_t i = 0; i < fd.params.size(); ++i) {
                 declarations.back().declarations[fd.params[i]->name.value] = fd.params[i];
@@ -373,7 +373,7 @@ public:
             taken(s->name.value);
             current_struct = s->decl;
             declarations.back().declarations[s->name.value] = s->decl;
-            declarations.emplace_back();
+            declarations.emplace_back(s->decl);
         } else if (defer_depth == 0) {
             if (auto a = dynamic_cast<AssignStmt*>(node)) {
                 a->decl = new Decl {
@@ -398,7 +398,7 @@ public:
                 taken(r->name.value);
                 declarations.back().declarations[r->name.value] = r->decl;
             } else if (dynamic_cast<BlockStmt*>(node)) {
-                declarations.emplace_back();
+                declarations.emplace_back(declarations.back().decl);
             } else if (auto r = dynamic_cast<ExprStmt*>(node)) {
                 if (declarations.size() == 0) {
                     error("Statement cannot be in global scope.");
