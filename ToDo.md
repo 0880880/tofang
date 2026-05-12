@@ -26,6 +26,8 @@
 - Type Check struct attribute
 - lifetime.start/end stack allocation hints
 - tidy: use std:: remove using namespace 
+- revisit nullable type checking
+- visit nullable code gen
 - Nicer errors
 - Generic Function IR generation
 - Remove GroupingExpr
