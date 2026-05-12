@@ -19,8 +19,9 @@
 - ~Functions in structs IR~
 - ~Definition level checks~
 - ~Arrays~
-- ~Import and STDLIB~
+- ~Import~
 - Strings
+- Standard library
 - Type Check pointer deref
 - Type Check struct attribute
 - lifetime.start/end stack allocation hints
@@ -36,8 +37,7 @@
 - Switch case
 - More ToDo
 
-## non-ordered ToDo
+## unordered ToDo
 - Check for repeated function and struct fields/args
-- Check for self in member functions by user
 - Require Public Main
 - Add debugging
