@@ -126,7 +126,7 @@ CompileResult Compiler::compile(std::string name, std::string source)
         parser.symbols->join(builtins.symbols);
     }
 
-    Program program = parser.buildAST(std::move(tokens), this, *mod);
+    Program program = parser.buildAST(tokens, this, *mod);
 
     pdata.symbols = new Symbols(*parser.symbols);
 
