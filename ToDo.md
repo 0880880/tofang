@@ -28,6 +28,7 @@
 - tidy: use std:: remove using namespace 
 - revisit nullable type checking
 - visit nullable code gen
+- static functions
 - Nicer errors
 - Generic Function IR generation
 - Remove GroupingExpr
