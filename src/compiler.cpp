@@ -15,6 +15,16 @@
 
 using namespace llvm;
 
+Compiler::Compiler()
+{
+    builtins = compile("BUILTINS",
+        R"(struct String {
+u8 *?data = null;
+u64 size = 0;
+}
+)");
+}
+
 void Compiler::regionWalk(Territory& territory, ASTNode* node)
 {
     territory.open(node);
@@ -56,6 +66,7 @@ vector<Lexer::Token> Compiler::tokenize(const string& source)
     lexer.token("[a-zA-Z_][a-zA-Z0-9_]*", "IDENTIFIER");
     lexer.token("\\?", "QUESTION");
     lexer.token(R"(\+\+|--|\|\||&&|==|!=|>=|<=|\+|-|/|\*|@|&|\^|\||>|<|!)", "OP");
+    lexer.token("=", "EQUAL");
     lexer.token(",", "COMMA");
     lexer.token("\\.", "DOT");
     lexer.token(":", "COLON");
@@ -66,8 +77,6 @@ vector<Lexer::Token> Compiler::tokenize(const string& source)
     lexer.token("\\}", "RBRACE");
     lexer.token("\\[", "LBRACKET");
     lexer.token("\\]", "RBRACKET");
-    lexer.token("\\<", "LCHEV");
-    lexer.token("\\>", "RCHEV");
 
     return lexer.tokenize(source);
 }
@@ -105,13 +114,15 @@ CompileResult Compiler::compile(std::string name, std::string source)
         source, regex { "(?://[^\n]*)|(?:/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/)" }, "");
     auto tokens = tokenize(source);
 
-    Linker::linkModules(*mod, std::move(CloneModule(*builtins.mod)));
+    if (builtins.mod != nullptr) {
+        Linker::linkModules(*mod, std::move(CloneModule(*builtins.mod)));
+    }
 
     Compiler::ProgramData pdata;
 
     Parser parser;
 
-    if (builtins.symbols) {
+    if (builtins.symbols != nullptr) {
         parser.symbols->join(builtins.symbols);
     }
 
