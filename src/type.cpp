@@ -101,6 +101,8 @@ Type* TypeThing::getLLVM(const IRContext& ir)
         return std::get<StructDecl>(std::get<StructType>(data).str->data).llvm;
     case TypeKind::META:
         return std::get<MetaType>(data).type->getLLVM(ir);
+    case TypeKind::NULLABLE:
+        return std::get<NullableType>(data).base->getLLVM(ir);
     }
     throw runtime_error("Unhandled type: " + toString());
 }
