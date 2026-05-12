@@ -36,10 +36,7 @@ private:
     vector<Lexer::Token> tokenize(const string& source);
 
 public:
-    Compiler()
-    {
-        builtins = compile("BUILTINS", R"()");
-    }
+    Compiler();
 
     void generateObject(llvm::Module& mod);
 
