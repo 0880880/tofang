@@ -45,14 +45,14 @@ vector<Lexer::Token> Compiler::tokenize(const string& source)
 {
 
     Lexer lexer;
-    lexer.token("true|false", "BOOLEAN");
+    lexer.token("\\b(?:true|false)\\b", "BOOLEAN");
     lexer.token("(?:[0-9]+\\.[0-9]+)|(?:\\.[0-9]+)", "DECIMAL");
     lexer.token("[0-9]+", "INTEGER");
     lexer.token(R"((?:"[^"]*"))", "STRING");
     lexer.token("(?:'[^']')", "CHAR");
-    lexer.token("null", "NULL");
-    lexer.token("if|else|for|return|region|while|struct|import|public", "KEYWORD");
-    lexer.token("void|bool|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64", "PRIMITIVE");
+    lexer.token("\\bnull\\b", "NULL");
+    lexer.token("\\b(?:if|else|for|return|region|while|struct|import|public)\\b", "KEYWORD");
+    lexer.token("\\b(?:void|bool|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64)\\b", "PRIMITIVE");
     lexer.token("[a-zA-Z_][a-zA-Z0-9_]*", "IDENTIFIER");
     lexer.token("\\?", "QUESTION");
     lexer.token("=", "EQUAL");
