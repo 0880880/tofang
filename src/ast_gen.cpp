@@ -604,6 +604,11 @@ llvm::Value* RegionStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
+llvm::Value* codegen(IRContext& ir)
+{
+    return nullptr;
+}
+
 llvm::Value* Program::codegen(IRContext& ir)
 {
     for (auto& s : statements) {
