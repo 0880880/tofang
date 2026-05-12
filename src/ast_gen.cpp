@@ -331,6 +331,24 @@ llvm::Value* CallExpr::codegen(IRContext& ir)
     return ir.builder.CreateCall(f, llvm_args);
 }
 
+llvm::Value* ArrayExpr::codegen(IRContext& ir)
+{
+    llvm::ArrayType* arrType = llvm::cast<llvm::ArrayType>(arr_type->getLLVM(ir));
+
+    llvm::Type* i32t = ir.builder.getInt32Ty();
+
+    auto idx = [&](unsigned i) -> llvm::Value* {
+        return llvm::ConstantInt::get(i32t, i);
+    };
+
+    llvm::AllocaInst* arr_alloca = ir.builder.CreateAlloca(arrType, idx(elements.size()), "arr_init");
+
+    for (size_t i = 0; i < elements.size(); ++i) {
+        llvm::Value* ptr = ir.builder.CreateGEP(arrType, arr_alloca, { llvm::ConstantInt::get(i32t, 0), idx(i) }, "arr_init.ptr");
+        ir.builder.CreateStore(elements[i]->codegen(ir), ptr);
+    }
+}
+
 llvm::Value* IndexExpr::codegen(IRContext& ir)
 {
     if (arr->t->kind == TypeKind::ARRAY) {
