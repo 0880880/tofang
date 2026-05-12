@@ -56,10 +56,7 @@ vector<Lexer::Token> Compiler::tokenize(const string& source)
     lexer.token("[a-zA-Z_][a-zA-Z0-9_]*", "IDENTIFIER");
     lexer.token("\\?", "QUESTION");
     lexer.token("=", "EQUAL");
-    lexer.token("\\+\\+|--", "ASSIGN");
-    lexer.token("\\+|-|/"
-                "|\\*|@|&|^|\\||&&|\\|\\|==|\\!=|\\>|\\<|\\>=|\\<=|\\!",
-        "OP");
+    lexer.token(R"(\+\+|--|\|\||&&|==|!=|>=|<=|\+|-|/|\*|@|&|\^|\||>|<|!)", "OP");
     lexer.token(",", "COMMA");
     lexer.token("\\.", "DOT");
     lexer.token(":", "COLON");
