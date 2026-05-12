@@ -734,7 +734,7 @@ Named<Stmt*> Parser::statement(Ptr& p)
     throw std::runtime_error("Unexpected token in statement(): " + (*p).type);
 }
 
-string readFile(const fs::path& path)
+static string readFile(const fs::path& path)
 {
     ifstream file(path);
     stringstream buffer;
