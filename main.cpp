@@ -7,7 +7,7 @@
 namespace fs = std::filesystem;
 using namespace std;
 
-string readFile(const fs::path& path)
+static string readFile(const fs::path& path)
 {
     ifstream file(path);
     stringstream buffer;
