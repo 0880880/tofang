@@ -25,6 +25,7 @@
 - Type Check pointer deref
 - Type Check struct attribute
 - lifetime.start/end stack allocation hints
+- tidy: use std:: remove using namespace 
 - Nicer errors
 - Generic Function IR generation
 - Remove GroupingExpr
