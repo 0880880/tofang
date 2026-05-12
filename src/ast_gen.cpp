@@ -622,7 +622,7 @@ llvm::Value* RegionStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* codegen(IRContext& ir)
+llvm::Value* ImportStmt::codegen(IRContext& ir)
 {
     return nullptr;
 }
