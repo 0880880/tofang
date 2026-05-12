@@ -22,10 +22,9 @@ class Symbols;
 
 static inline void error(const string& msg)
 {
-    std::cerr << msg << '\n';
     std::cout.flush();
     std::cerr.flush();
-    exit(1);
+    throw std::runtime_error(msg);
 }
 
 template <typename T>
@@ -150,7 +149,7 @@ public:
         }
     };
 
-    Program buildAST(vector<Lexer::Token> tokens, Compiler* compiler, llvm::Module& module);
+    Program buildAST(vector<Lexer::Token>& tokens, Compiler* compiler, llvm::Module& module);
 
 private:
     std::optional<TypeThing*> type(Ptr& p);

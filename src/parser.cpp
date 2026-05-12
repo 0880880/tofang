@@ -742,7 +742,7 @@ static string readFile(const fs::path& path)
     return buffer.str();
 }
 
-Program Parser::buildAST(Tokens tokens, Compiler* compiler, llvm::Module& module)
+Program Parser::buildAST(Tokens& tokens, Compiler* compiler, llvm::Module& module)
 {
     Program prog;
 
