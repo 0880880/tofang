@@ -24,6 +24,7 @@
 - Standard library
 - Type Check pointer deref
 - Type Check struct attribute
+- usize type
 - lifetime.start/end stack allocation hints
 - tidy: use std:: remove using namespace 
 - revisit nullable type checking
