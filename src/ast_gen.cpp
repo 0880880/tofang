@@ -2,10 +2,8 @@
 #include "decl.h"
 #include "irctx.h"
 #include "type.h"
-#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/DerivedTypes.h"
-#include <iostream>
 #include <stdexcept>
 #include <string>
 

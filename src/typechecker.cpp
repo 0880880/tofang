@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
