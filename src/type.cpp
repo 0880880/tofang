@@ -38,7 +38,7 @@ string TypeThing::toString()
     case TypeKind::F64:
         return "f64";
     case TypeKind::STRUCT:
-        return "struct(" + std::get<StructType>(data).str->name.value + ")";
+        return "struct(" + std::get<StructType>(data).name + ")";
     case TypeKind::NULLABLE:
         return std::get<NullableType>(data).base->toString() + "?";
     case TypeKind::TYPE_VAR:
@@ -98,7 +98,7 @@ Type* TypeThing::getLLVM(const IRContext& ir)
     case TypeKind::POINTER:
         return PointerType::getUnqual(ir.ctx);
     case TypeKind::STRUCT:
-        return std::get<StructDecl>(std::get<StructType>(data).str->data).llvm;
+        return std::get<StructDecl>(std::get<StructType>(data).decl->data).llvm;
     case TypeKind::META:
         return std::get<MetaType>(data).type->getLLVM(ir);
     case TypeKind::NULLABLE:
@@ -261,22 +261,18 @@ TypeThing* TypeInterner::getTypeVar(const string& name)
     return t;
 }
 
-TypeThing* TypeInterner::getStruct(Decl* s)
+TypeThing* TypeInterner::getStruct(const string& name)
 {
     TypeKey key {};
     key.kind = TypeKind::STRUCT;
-    key.name = s->name.value; // I don't know, but name should be unique so
-                              // this can't be a problem
-    StructDecl sd = std::get<StructDecl>(s->data);
-    key.params.insert(key.params.begin(), sd.fieldTypes.begin(),
-        sd.fieldTypes.end());
+    key.name = name;
 
     auto it = table.find(key);
     if (it != table.end()) {
         return it->second;
     }
 
-    auto* t = new TypeThing { .kind = TypeKind::STRUCT, .data = StructType { s } };
+    auto* t = new TypeThing { .kind = TypeKind::STRUCT, .data = StructType { name } };
 
     table[key] = t;
     return t;

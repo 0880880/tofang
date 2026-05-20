@@ -34,7 +34,6 @@ class Parser {
 
 public:
     std::unique_ptr<Symbols> symbols;
-    std::vector<std::pair<Lexer::Token, TypeThing*>> types;
 
     Parser();
 
@@ -70,6 +69,8 @@ public:
         Iter& it;
         Iter end;
 
+        std::deque<Iter> stack;
+
     public:
         Ptr(Iter& it, Iter end)
             : it(it)
@@ -78,6 +79,17 @@ public:
         }
 
         [[nodiscard]] bool eof() const { return it == end; }
+
+        void save()
+        {
+            stack.push_back(it);
+        }
+
+        void restore()
+        {
+            it = stack.back();
+            stack.pop_back();
+        }
 
         Lexer::Token& operator*()
         {
@@ -160,8 +172,6 @@ private:
     Named<Expr*> expr(Ptr& p, int minPrec = 0);
     Named<Stmt*> func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility visibility);
     Named<Stmt*> statement(Ptr& p);
-
-    Decl* search(const std::string& name, bool fail = false);
 };
 
 class Symbols {
@@ -179,8 +189,6 @@ private:
     Decl* current_func = nullptr;
     int defer_depth = 0;
 
-    void resolveTypes(bool final = false);
-
     std::deque<std::deque<FuncDefer>> defers = { {} };
 
     struct Scope {
@@ -197,6 +205,10 @@ public:
     std::deque<Scope>
         declarations
         = { Scope { nullptr } };
+    std::deque<TypeThing*>
+        unresolved_types;
+
+    Decl* search(const std::string& name, bool fail = false);
 
     void taken(const std::string& name);
 
@@ -208,6 +220,8 @@ public:
             }
         }
     }
+
+    void resolveTypes(bool final = false);
 
     void pushDeferScope()
     {

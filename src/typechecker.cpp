@@ -227,7 +227,8 @@ void TypeChecker::close(ASTNode* node)
             lit->t = type_inull;
             break;
         case LiteralExpr::String:
-            throw runtime_error("Unhandeled String literal");
+            lit->t = interner->getPointer(type_u8);
+            break;
         }
     } else if (auto* var = dynamic_cast<VariableExpr*>(node)) {
         TypeThing* refined = current_env.lookup(var->decl);
@@ -414,8 +415,9 @@ void TypeChecker::close(ASTNode* node)
         defer_strct:;
         }
     } else if (auto* str_init = dynamic_cast<StructInitExpr*>(node)) {
-        Decl* d = std::get<StructType>(str_init->struct_type->data).str;
-        auto& p = std::get<StructDecl>(d->data);
+        StructType& str_ty = std::get<StructType>(str_init->struct_type->data);
+
+        auto& p = std::get<StructDecl>(str_ty.decl->data);
         ssize_t last_index = -1;
         for (size_t i = 0; i < str_init->names.size(); ++i) {
             Lexer::Token& t = str_init->names[i];
@@ -439,6 +441,7 @@ void TypeChecker::close(ASTNode* node)
                     if (isNumeric(lhs) && isNumeric(rhs)) {
                         if (numOrder(lhs) >= numOrder(rhs)) {
                             rhs = lhs;
+                            str_init->values[i]->t = lhs;
                         } else {
                             error("assignment type mismatch " + lhs->toString() + " = " + rhs->toString());
                         }
@@ -446,6 +449,7 @@ void TypeChecker::close(ASTNode* node)
 
                     if (lhs->kind == TypeKind::NULLABLE && rhs->kind != TypeKind::NULLABLE) {
                         rhs = interner->getNullable(rhs);
+                        str_init->values[i]->t = rhs;
                     }
 
                     if (lhs == rhs) {
@@ -464,7 +468,7 @@ void TypeChecker::close(ASTNode* node)
                 error("Unkown struct field: " + t.value);
             }
         }
-        str_init->t = interner->getStruct(d);
+        str_init->t = interner->getStruct(str_ty.name);
     } else if (auto* assign_stmt = dynamic_cast<AssignStmt*>(node)) {
 
         TypeThing* lhs = assign_stmt->type;
@@ -504,6 +508,8 @@ void TypeChecker::close(ASTNode* node)
         }
     } else if (auto cal = dynamic_cast<CallExpr*>(node)) {
 
+        bool struct_member_call = false;
+
         if (auto* att = dynamic_cast<AttribExpr*>(cal->func)) {
 
             if (att->foo->t->kind == TypeKind::REGION) {
@@ -540,17 +546,20 @@ void TypeChecker::close(ASTNode* node)
                 cal->region = std::get<RegionType>(region_type->data).region->region;
 
                 return;
+            } else if (att->foo->t->kind == TypeKind::STRUCT) {
+                struct_member_call = true;
             }
         }
 
         if (cal->func->t->kind == TypeKind::FUNCTION) {
             FuncType f = std::get<FuncType>(cal->func->t->data);
-            if (f.params.size() != cal->args.size()) {
+            size_t off = struct_member_call ? 1 : 0;
+            if (f.params.size() != (cal->args.size() + off)) {
                 error("Function call argument size mismatch: Expected " + to_string(f.params.size()) + " got " + to_string(cal->args.size()) + " instead.");
             }
-            for (size_t i = 0; i < f.params.size(); ++i) {
+            for (size_t i = 0; i < f.params.size() - off; ++i) {
 
-                TypeThing* lhs = f.params[i];
+                TypeThing* lhs = f.params[i + off];
                 TypeThing* rhs = cal->args[i]->t;
 
                 if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull) {
@@ -613,7 +622,7 @@ void TypeChecker::close(ASTNode* node)
         }
     } else if (auto* att = dynamic_cast<AttribExpr*>(node)) {
         if (att->foo->t->kind == TypeKind::STRUCT) {
-            auto* decl = std::get<StructType>(att->foo->t->data).str;
+            auto* decl = std::get<StructType>(att->foo->t->data).decl;
             auto& ddata = std::get<StructDecl>(decl->data);
             for (unsigned int i = 0; i < ddata.fieldNames.size(); i++) {
                 if (ddata.fieldNames[i].value == att->bar.value) {
@@ -646,7 +655,6 @@ void TypeChecker::close(ASTNode* node)
         } else if (att->foo->t->kind == TypeKind::REGION) {
             // Ignore, handled earlier
         } else {
-            std::cout << att->foo->t->toString() << "\n";
             error("Unexpected attribute, only region and struct can be attributed");
         }
     } else if (auto* idx = dynamic_cast<IndexExpr*>(node)) {

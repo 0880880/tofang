@@ -2,8 +2,9 @@
 #include "decl.h"
 #include "irctx.h"
 #include "type.h"
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/Support/raw_ostream.h"
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -40,6 +41,23 @@ static llvm::Value* cast(const IRContext& ir, llvm::Value* val, TypeThing* from,
 
 llvm::Value* LiteralExpr::codegen(IRContext& ir)
 {
+    if (type == LiteralExpr::Type::String) {
+        std::string_view view = std::string_view(value.value).substr(1, value.value.length() - 2);
+        auto* str_const = llvm::ConstantDataArray::getString(ir.ctx, view, false);
+
+        auto* gvar = new llvm::GlobalVariable(
+            ir.mod,
+            str_const->getType(),
+            true, // isConstant
+            llvm::GlobalValue::PrivateLinkage,
+            str_const,
+            "str_global");
+
+        llvm::Value* zero = ir.builder.getInt32(0);
+        llvm::Value* indices[] = { zero, zero };
+        llvm::Value* str_ptr = ir.builder.CreateInBoundsGEP(gvar->getValueType(), gvar, indices);
+        return str_ptr;
+    }
     switch (t->kind) {
     case TypeKind::I8:
     case TypeKind::I16:
@@ -236,7 +254,7 @@ llvm::Value* AttribExpr::codegen(IRContext& ir)
         lhs = foo->codegen(ir);
     }
     if (foo->t->kind == TypeKind::STRUCT) {
-        auto* decl = std::get<StructType>(foo->t->data).str;
+        auto* decl = std::get<StructType>(foo->t->data).decl;
         auto& ddata = std::get<StructDecl>(decl->data);
         ir.attrib_struct = lhs;
         for (unsigned int i = 0; i < ddata.methods.size(); i++) {
@@ -373,7 +391,8 @@ llvm::Value* AssignStmt::codegen(IRContext& ir)
     {
         IRCOptions _(ir);
         _.unpackStored();
-        ir.builder.CreateStore(value->codegen(ir), x);
+        auto* val = value->codegen(ir);
+        ir.builder.CreateStore(val, x);
     }
     decl->alloca = x;
     return nullptr;
@@ -489,7 +508,7 @@ llvm::Value* StructStmt::codegen(IRContext& ir)
 
 llvm::Value* StructInitExpr::codegen(IRContext& ir)
 {
-    auto& ddata = std::get<StructDecl>(std::get<StructType>(struct_type->data).str->data);
+    auto& ddata = std::get<StructDecl>(std::get<StructType>(struct_type->data).decl->data);
     auto* ptr = ir.builder.CreateAlloca(ddata.llvm, nullptr, "obj");
     for (size_t i = 0; i < ddata.fieldNames.size(); ++i) {
         auto it = std::find_if(names.begin(), names.end(), [&ddata, i](Lexer::Token& t) { return t.value == ddata.fieldNames[i].value; });
@@ -499,7 +518,7 @@ llvm::Value* StructInitExpr::codegen(IRContext& ir)
         if (it != names.end()) {
             size_t sub_idx = static_cast<size_t>(std::distance(names.begin(), it));
             llvm::Value* raw_val = values[sub_idx]->codegen(ir);
-            llvm::Value* casted_val = cast(ir, raw_val, values[sub_idx]->t, ddata.fieldDefs[i]->t);
+            llvm::Value* casted_val = cast(ir, raw_val, values[sub_idx]->t, ddata.fieldTypes[i]);
             ir.builder.CreateStore(casted_val, field);
         } else {
             ir.builder.CreateStore(ddata.fieldDefs[i]->codegen(ir), field);

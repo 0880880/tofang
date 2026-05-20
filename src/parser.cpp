@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -19,9 +20,9 @@ using Ptr = Parser::Ptr;
 template <typename T>
 using Named = Parser::Named<T>;
 
-Decl* Parser::search(const std::string& name, bool fail)
+Decl* Symbols::search(const std::string& name, bool fail)
 {
-    for (auto& [_, map] : std::views::reverse(symbols->declarations)) {
+    for (auto& [_, map] : std::views::reverse(declarations)) {
         auto d = map.find(name);
         if (d != map.end()) {
             return d->second;
@@ -74,9 +75,14 @@ optional<TypeThing*> Parser::type(Ptr& p)
         } else if ((*p).value == "f64") {
             t = type_f64;
         }
-    } else if (p.is("IDENTIFIER") && search((*p).value, false) && search((*p).value, false)->kind == DeclKind::STRUCT) { // TODO avoid redoing search
-        auto* str = search((*p).value, false);
-        t = interner->getStruct(str);
+    } else if (p.is("IDENTIFIER")) {
+        Decl* decl = symbols->search((*p).value, false);
+        if (decl != nullptr) {
+            t = interner->getStruct((*p).value);
+            symbols->unresolved_types.push_back(t);
+        } else {
+            return nullopt;
+        }
     } else {
         return nullopt;
     }
@@ -109,7 +115,6 @@ optional<TypeThing*> Parser::type(Ptr& p)
         ++p;
         t = interner->getNullable(t);
     }
-    types.emplace_back(*p, t);
     return t;
 }
 
@@ -185,6 +190,16 @@ Named<Expr*> Parser::primary(Ptr& p)
         }
         if (p.is("STRING")) {
             l->type = LiteralExpr::Type::String;
+            auto init = new StructInitExpr();
+            init->struct_type = interner->getStruct("String");
+            symbols->unresolved_types.push_back(init->struct_type);
+            init->names.push_back(Lexer::Token { "IDENTIFIER", "data" });
+            init->names.push_back(Lexer::Token { "IDENTIFIER", "len" });
+            std::string_view sub = std::string_view((*p).value).substr(1, (*p).value.length() - 2);
+            init->values.push_back(l);
+            init->values.push_back(new LiteralExpr(LiteralExpr::Type::Integer, Lexer::Token { "INTEGER", to_string(sub.length()) }));
+            ++p;
+            return symbols->open(init);
         }
 
         ++p;
@@ -715,21 +730,25 @@ Named<Stmt*> Parser::statement(Ptr& p)
         return symbols->open(imp);
     }
 
+    p.save();
     if (auto ty = type(p)) {
         auto t = *ty;
 
-        Lexer::Token name = *p;
-        p.expect("IDENTIFIER");
-
-        if (p.is("EQUAL")) {
+        if (p.is("IDENTIFIER")) {
+            Lexer::Token name = *p;
             ++p;
-            Expr* rhs = expr(p).get();
-            p.expect("SEMICOLON");
-            return symbols->open(new AssignStmt(t, name, rhs, getVisibility(visibility)));
-        }
 
-        return func(p, t, name, getVisibility(visibility));
+            if (p.is("EQUAL")) {
+                ++p;
+                Expr* rhs = expr(p).get();
+                p.expect("SEMICOLON");
+                return symbols->open(new AssignStmt(t, name, rhs, getVisibility(visibility)));
+            }
+
+            return func(p, t, name, getVisibility(visibility));
+        }
     }
+    p.restore();
     Expr* e = expr(p).get();
     p.expect("SEMICOLON");
     return symbols->open(new ExprStmt(e));
@@ -754,6 +773,7 @@ Program Parser::buildAST(Tokens& tokens, Compiler* compiler, llvm::Module& modul
 
     while (it != tokens.end()) {
         Stmt* stmt = symbols->close(statement(ptr).get()).get();
+        symbols->resolveTypes();
         if (auto* import = dynamic_cast<ImportStmt*>(stmt)) {
             fs::path path = std::filesystem::current_path();
             std::string path_display;
@@ -779,4 +799,20 @@ Program Parser::buildAST(Tokens& tokens, Compiler* compiler, llvm::Module& modul
     symbols->flushDefers();
 
     return prog;
+}
+
+void Symbols::resolveTypes(bool final)
+{
+    while (!unresolved_types.empty()) {
+        TypeThing* t = unresolved_types.back();
+        unresolved_types.pop_back();
+        if (t->kind == TypeKind::STRUCT) {
+            auto& str = std::get<StructType>(t->data);
+            Decl* decl = search(str.name, true);
+            if (decl->kind != DeclKind::STRUCT) {
+                throw std::runtime_error(str.name + " is not a struct.");
+            }
+            str.decl = decl;
+        }
+    }
 }

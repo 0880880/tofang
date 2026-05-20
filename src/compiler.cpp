@@ -18,9 +18,9 @@ using namespace llvm;
 Compiler::Compiler()
 {
     builtins = compile("BUILTINS",
-        R"(struct String {
+        R"(public struct String {
 u8 *?data = null;
-u64 size = 0;
+u64 len = 0;
 }
 )");
 }
@@ -127,6 +127,7 @@ CompileResult Compiler::compile(std::string name, std::string source)
     }
 
     Program program = parser.buildAST(tokens, this, *mod);
+    printAST(&program);
 
     pdata.symbols = new Symbols(*parser.symbols);
 

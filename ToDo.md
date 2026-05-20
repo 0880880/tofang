@@ -20,7 +20,7 @@
 - ~Definition level checks~
 - ~Arrays~
 - ~Import~
-- Strings
+- ~Strings~
 - Standard library
 - Type Check pointer deref
 - Type Check struct attribute

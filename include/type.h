@@ -72,7 +72,8 @@ struct RegionType {
 };
 
 struct StructType {
-    Decl* str;
+    std::string name;
+    Decl* decl = nullptr;
 };
 
 struct GenericFuncType {
@@ -211,7 +212,7 @@ public:
 
     TypeThing* getRegion(Decl* region);
 
-    TypeThing* getStruct(Decl* s);
+    TypeThing* getStruct(const std::string& name);
 
     TypeThing* getUserType(const std::string& name);
 
