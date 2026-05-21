@@ -93,7 +93,7 @@ void Compiler::generateObject(Module& mod)
     auto target = TargetRegistry::lookupTarget(target_triple, err);
 
     TargetOptions opt;
-    auto rm = std::optional<Reloc::Model>();
+    auto rm = std::optional<Reloc::Model>(Reloc::PIC_);
     auto target_machine = target->createTargetMachine(target_triple, "generic", "", opt, rm);
 
     mod.setDataLayout(target_machine->createDataLayout());
