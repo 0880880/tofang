@@ -4,7 +4,6 @@
 #include "type.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/DerivedTypes.h"
-#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -522,7 +521,7 @@ llvm::Value* StructInitExpr::codegen(IRContext& ir)
     for (size_t i = 0; i < ddata.fieldNames.size(); ++i) {
         auto it = std::find_if(names.begin(), names.end(), [&ddata, i](Lexer::Token& t) { return t.value == ddata.fieldNames[i].value; });
 
-        auto* field = ir.builder.CreateStructGEP(ddata.llvm, ptr, 0, "init_field_" + ddata.fieldNames[i].value);
+        auto* field = ir.builder.CreateStructGEP(ddata.llvm, ptr, i, "init_field_" + ddata.fieldNames[i].value);
 
         if (it != names.end()) {
             size_t sub_idx = static_cast<size_t>(std::distance(names.begin(), it));
@@ -532,6 +531,9 @@ llvm::Value* StructInitExpr::codegen(IRContext& ir)
         } else {
             ir.builder.CreateStore(ddata.fieldDefs[i]->codegen(ir), field);
         }
+    }
+    if (ir.unpack_stored) {
+        return ir.builder.CreateLoad(ddata.llvm, ptr, "loaded_obj");
     }
     return ptr;
 }
