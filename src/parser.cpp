@@ -77,7 +77,7 @@ optional<TypeThing*> Parser::type(Ptr& p)
         }
     } else if (p.is("IDENTIFIER")) {
         Decl* decl = symbols->search((*p).value, false);
-        if (decl != nullptr && decl.kind == DeclKind::STRUCT) {
+        if (decl != nullptr && decl->kind == DeclKind::STRUCT) {
             t = interner->getStruct((*p).value);
             symbols->unresolved_types.push_back(t);
         } else {
