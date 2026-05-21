@@ -339,6 +339,7 @@ public:
     Lexer::Token name;
     Visibility visibility;
     bool generic = false;
+    bool is_extern = false;
     vector<TypeThing*> genericParams;
     vector<TypeThing*> paramTypes;
     vector<Lexer::Token> paramNames;

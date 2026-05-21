@@ -390,9 +390,10 @@ static inline Visibility getVisibility(std::optional<Visibility> opt)
     return opt.value_or(Visibility::PROTECTED);
 }
 
-Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility visibility)
+Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility visibility, bool is_extern)
 {
     if (p.isV("<")) {
+        error("Extern function cannot be generic.");
         ++p;
         auto* fn = new FuncStmt(t, name, getVisibility(visibility));
         fn->generic = true;
@@ -447,6 +448,7 @@ Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility vi
     if (p.is("LPAREN")) {
         ++p;
         auto* fn = new FuncStmt(t, name, getVisibility(visibility));
+        fn->is_extern = is_extern;
 
         bool start = true;
         while (start || p.is("COMMA")) {
@@ -466,18 +468,22 @@ Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility vi
             }
         }
         p.expect("RPAREN");
-        p.expect("LBRACE");
-
         auto named = symbols->open(fn);
-        symbols->open(&fn->body);
+        if (is_extern && p.is("LBRACE")) {
+            error("Extern function cannot have a body");
+        } else if (!is_extern) {
+            p.expect("LBRACE");
 
-        while (!p.eof() && !p.is("RBRACE")) {
-            fn->body.statements.push_back(statement(p).get());
+            symbols->open(&fn->body);
+
+            while (!p.eof() && !p.is("RBRACE")) {
+                fn->body.statements.push_back(statement(p).get());
+            }
+
+            symbols->close(&fn->body);
+
+            p.expect("RBRACE");
         }
-
-        symbols->close(&fn->body);
-
-        p.expect("RBRACE");
         return named;
     }
 
@@ -731,6 +737,11 @@ Named<Stmt*> Parser::statement(Ptr& p)
     }
 
     p.save();
+    bool is_extern = false;
+    if (p.is("KEYWORD") && p.isV("extern")) {
+        is_extern = true;
+        ++p;
+    }
     if (auto ty = type(p)) {
         auto t = *ty;
 
@@ -740,12 +751,15 @@ Named<Stmt*> Parser::statement(Ptr& p)
 
             if (p.is("EQUAL")) {
                 ++p;
+                if (is_extern) {
+                    error("Variable cannot be extern");
+                }
                 Expr* rhs = expr(p).get();
                 p.expect("SEMICOLON");
                 return symbols->open(new AssignStmt(t, name, rhs, getVisibility(visibility)));
             }
 
-            return func(p, t, name, getVisibility(visibility));
+            return func(p, t, name, getVisibility(visibility), is_extern);
         }
     }
     p.restore();

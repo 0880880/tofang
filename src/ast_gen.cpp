@@ -4,6 +4,7 @@
 #include "type.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/IR/DerivedTypes.h"
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -325,22 +326,21 @@ llvm::Value* CallExpr::codegen(IRContext& ir)
         }
     }
     llvm::Value* l = nullptr;
+    std::vector<llvm::Value*> llvm_args = {};
     {
         IRCOptions _(ir);
         _.unpackStored();
         l = func->codegen(ir);
-    }
-
-    std::vector<llvm::Value*> llvm_args = {};
-    if (ir.attrib_struct != nullptr) {
-        llvm_args.reserve(args.size() + 1);
-        llvm_args.push_back(ir.attrib_struct);
-        ir.attrib_struct = nullptr;
-    } else {
-        llvm_args.reserve(args.size());
-    }
-    for (Expr* a : args) {
-        llvm_args.push_back(a->codegen(ir));
+        if (ir.attrib_struct != nullptr) {
+            llvm_args.reserve(args.size() + 1);
+            llvm_args.push_back(ir.attrib_struct);
+            ir.attrib_struct = nullptr;
+        } else {
+            llvm_args.reserve(args.size());
+        }
+        for (Expr* a : args) {
+            llvm_args.push_back(a->codegen(ir));
+        }
     }
 
     auto* f = llvm::dyn_cast<llvm::Function>(l);
@@ -446,6 +446,9 @@ llvm::Value* FuncStmt::codegen(IRContext& ir)
     params.reserve(func_decl.params.size());
     for (auto* vd : func_decl.params) {
         auto& var = std::get<VarDecl>(vd->data);
+        if (var.type->kind == TypeKind::META || var.type->kind == TypeKind::USER_TYPE || var.type->kind == TypeKind::STRUCT) {
+            throw std::runtime_error("Invalid argument " + vd->name.value + " in extern function.");
+        }
         params.push_back(var.type->getLLVM(ir));
     }
     std::string fname = name.value;
@@ -454,16 +457,24 @@ llvm::Value* FuncStmt::codegen(IRContext& ir)
             = func_decl.parentStruct->name.value + "_" + name.value;
     }
     llvm::FunctionType* fn_type = llvm::FunctionType::get(returnType->getLLVM(ir), params, false);
+
+    auto linkage = decl->visibility == Visibility::PUBLIC ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
+    if (is_extern) {
+        linkage = llvm::Function::ExternalLinkage;
+    }
     llvm::Function* fn = llvm::Function::Create(
-        fn_type, decl->visibility == Visibility::PUBLIC ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage, fname, ir.mod);
-    llvm::BasicBlock* entry = llvm::BasicBlock::Create(ir.ctx, "entry", fn);
-    ir.current_function = fn;
-    ir.fn_entry = new llvm::IRBuilder<>(entry);
-    ir.builder.SetInsertPoint(entry);
-
+        fn_type, linkage, fname, ir.mod);
     func_decl.llvm = fn;
+    if (!is_extern) {
+        llvm::BasicBlock* entry = llvm::BasicBlock::Create(ir.ctx, "entry", fn);
+        ir.current_function = fn;
+        ir.fn_entry = new llvm::IRBuilder<>(entry);
+        ir.builder.SetInsertPoint(entry);
 
-    body.codegen(ir);
+        body.codegen(ir);
+    } else {
+        fn->setCallingConv(llvm::CallingConv::C);
+    }
 
     return nullptr;
 }

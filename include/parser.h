@@ -170,7 +170,7 @@ private:
     Named<Expr*> prefix(Ptr& p);
     Named<Expr*> binExpr(Ptr& p, int minPrec = 0);
     Named<Expr*> expr(Ptr& p, int minPrec = 0);
-    Named<Stmt*> func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility visibility);
+    Named<Stmt*> func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility visibility, bool is_extern = false);
     Named<Stmt*> statement(Ptr& p);
 };
 
