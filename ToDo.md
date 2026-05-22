@@ -22,6 +22,9 @@
 - ~Import~
 - ~Strings~
 - Standard library
+- Variadic functions
+- Control characters
+- FMT library
 - Type Check pointer deref
 - Type Check struct attribute
 - usize type
