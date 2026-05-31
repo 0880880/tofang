@@ -443,12 +443,14 @@ llvm::Value* FuncStmt::codegen(IRContext& ir)
     auto& func_decl = std::get<FuncDecl>(decl->data);
     std::vector<llvm::Type*> params;
     params.reserve(func_decl.params.size());
-    for (auto* vd : func_decl.params) {
-        auto& var = std::get<VarDecl>(vd->data);
-        if (var.type->kind == TypeKind::META || var.type->kind == TypeKind::USER_TYPE || var.type->kind == TypeKind::STRUCT) {
-            throw std::runtime_error("Invalid argument " + vd->name.value + " in extern function.");
+    if (is_extern) {
+        for (auto* vd : func_decl.params) {
+            auto& var = std::get<VarDecl>(vd->data);
+            if (var.type->kind == TypeKind::META || var.type->kind == TypeKind::USER_TYPE || var.type->kind == TypeKind::STRUCT) {
+                throw std::runtime_error("Invalid argument " + vd->name.value + " in extern function.");
+            }
+            params.push_back(var.type->getLLVM(ir));
         }
-        params.push_back(var.type->getLLVM(ir));
     }
     std::string fname = name.value;
     if (func_decl.parentStruct) {
