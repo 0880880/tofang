@@ -31,6 +31,8 @@ private:
 
     void regionWalk(Territory& territory, ASTNode* node);
 
+    void restoreTypeWalk(ASTNode* node);
+
     void printAST(ASTNode* node, const string& spacing = "");
 
     vector<Lexer::Token> tokenize(const string& source);

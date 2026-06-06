@@ -39,6 +39,21 @@ void Compiler::regionWalk(Territory& territory, ASTNode* node)
     territory.close(node);
 }
 
+void Compiler::restoreTypeWalk(ASTNode* node)
+{
+    if (auto *expr = dynamic_cast<Expr *>(node))
+    {
+        expr->t = expr->actual_t;
+    }
+
+    for (auto sub : node->walk()) {
+        if (!sub) {
+            continue;
+        }
+        restoreTypeWalk(sub);
+    }
+}
+
 void Compiler::printAST(ASTNode* node, const string& spacing)
 {
     cout << spacing << node->toString() << '\n';
@@ -138,6 +153,8 @@ CompileResult Compiler::compile(std::string name, std::string source)
     Territory territory;
 
     regionWalk(territory, &program);
+
+    restoreTypeWalk(&program);
 
     IRBuilder<> builder(ctx);
 
