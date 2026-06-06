@@ -93,7 +93,57 @@ vector<Lexer::Token> Compiler::tokenize(const string& source)
     lexer.token("\\[", "LBRACKET");
     lexer.token("\\]", "RBRACKET");
 
-    return lexer.tokenize(source);
+    auto tokens = lexer.tokenize(source);
+
+    for (auto &token : tokens)
+    {
+        if (token.type == "STRING" || token.type == "CHAR")
+        {
+            std::string sb;
+            sb.reserve(token.value.length());
+            for (size_t i = 1; i < token.value.length()-1; ++i)
+            {
+                const char ch = token.value[i];
+                if (ch == '\\')
+                {
+
+                    ++i;
+                    if (i >= token.value.length()-1)
+                    {
+                        throw std::runtime_error("Trailing backslash at end of string");
+                    }
+
+                    switch (const char control_char = token.value[i]) {
+                    case '0':  sb += '\0'; break; // Null
+                    case 'a':  sb += '\a'; break; // Bell
+                    case 'b':  sb += '\b'; break; // Backspace
+                    case 'f':  sb += '\f'; break; // Form Feed
+                    case 'n':  sb += '\n'; break; // Newline
+                    case 'r':  sb += '\r'; break; // Carriage Return
+                    case 't':  sb += '\t'; break; // Tab
+                    case 'v':  sb += '\v'; break; // Vertical Tab
+                    case '\\': sb += '\\'; break; // Backslash
+                    case '"':  sb += '"';  break; // Double Quote
+                    case '\'': sb += '\''; break; // Single Quote
+
+                        // case 'x':
+                        //     break;
+                        // case 'u':
+                        //     break;
+
+                    default:
+                        throw std::runtime_error("Unknown escape sequence \\" + std::string(1,control_char));
+                    }
+                } else
+                {
+                    sb += ch;
+                }
+            }
+            token.value = sb;
+        }
+    }
+
+    return tokens;
 }
 
 void Compiler::generateObject(Module& mod)
