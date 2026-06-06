@@ -315,7 +315,7 @@ void TypeChecker::close(ASTNode* node)
                 if (isUnsigned(lhs) != isUnsigned(rhs))
                 {
                     error(
-                        "arithmetic operation between unsigned and non-unsigned type is "
+                        "arithmetic operation between unsigned and signed type is "
                         "invalid.");
                 }
                 if (lhs->kind == TypeKind::UNTYPED_INT && rhs->kind == TypeKind::UNTYPED_INT)
