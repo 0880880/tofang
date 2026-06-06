@@ -73,8 +73,8 @@ vector<Lexer::Token> Compiler::tokenize(const string& source)
     lexer.token("\\b(?:true|false)\\b", "BOOLEAN");
     lexer.token("(?:[0-9]+\\.[0-9]+)|(?:\\.[0-9]+)", "DECIMAL");
     lexer.token("[0-9]+", "INTEGER");
-    lexer.token(R"((?:"[^"]*"))", "STRING");
-    lexer.token("(?:'[^']')", "CHAR");
+    lexer.token(R"("(?:[^"\\]|\\.)*")", "STRING");
+    lexer.token(R"('(?:[^'\\]|\\.)')", "CHAR");
     lexer.token("\\bnull\\b", "NULL");
     lexer.token("\\b(?:if|else|for|return|region|while|struct|import|public|extern)\\b", "KEYWORD");
     lexer.token("\\b(?:void|bool|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64)\\b", "PRIMITIVE");
