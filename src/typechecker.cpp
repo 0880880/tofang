@@ -310,7 +310,7 @@ void TypeChecker::close(ASTNode* node)
             {
                 if (!isNumeric(lhs) || !isNumeric(rhs))
                 {
-                    error("operands of aritmhetic operation must be numeric");
+                    error("operands of arithmetic operation must be numeric");
                 }
                 if (isUnsigned(lhs) != isUnsigned(rhs))
                 {
