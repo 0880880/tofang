@@ -306,18 +306,8 @@ void TypeChecker::close(ASTNode* node)
 
         for (auto& [lhs, rhs] : combinations)
         {
-            if (op == "+" || op == "-" || op == "*" || op == "/")
+            if (op == "+" || op == "- " || op == "*" || op == "/")
             {
-                if (!isNumeric(lhs) || !isNumeric(rhs))
-                {
-                    error("operands of arithmetic operation must be numeric");
-                }
-                if (isUnsigned(lhs) != isUnsigned(rhs))
-                {
-                    error(
-                        "arithmetic operation between unsigned and signed type is "
-                        "invalid.");
-                }
                 if (lhs->kind == TypeKind::UNTYPED_INT && rhs->kind == TypeKind::UNTYPED_INT)
                 {
                     bin->left->setType(type_i32);
@@ -333,6 +323,16 @@ void TypeChecker::close(ASTNode* node)
                     bin->setType(type_f64);
                     break;
                 }
+                if (!isNumeric(lhs) || !isNumeric(rhs))
+                {
+                    error("operands of arithmetic operation must be numeric");
+                }
+                // if (isUnsigned(lhs) != isUnsigned(rhs))
+                // {
+                //     error(
+                //         "arithmetic operation between unsigned and signed type is "
+                //         "invalid.");
+                // }
                 if (lhs == rhs)
                 {
                     bin->setType(lhs);
@@ -370,6 +370,14 @@ void TypeChecker::close(ASTNode* node)
             }
             else if (op == "&&" || op == "||")
             {
+                if (lhs->kind == TypeKind::NULLABLE)
+                {
+                    lhs = type_bool;
+                }
+                if (rhs->kind == TypeKind::NULLABLE)
+                {
+                    rhs = type_bool;
+                }
                 if (lhs != type_bool || rhs != type_bool)
                 {
                     error("operands of logical operation must be bool");
