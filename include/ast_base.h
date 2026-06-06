@@ -16,8 +16,15 @@ public:
 class Expr : public ASTNode {
 public:
     TypeThing* t = nullptr;
+    TypeThing* actual_t = nullptr;
     Region* region;
     ~Expr() override = default;
+
+    void setType(TypeThing *ty)
+    {
+        t = ty;
+        actual_t = ty;
+    }
 };
 
 class Stmt : public ASTNode {
