@@ -18,6 +18,7 @@ struct IRContext {
     std::deque<BlockStmt*> blocks = {};
     bool unpack_stored = false;
     llvm::Value* attrib_struct = nullptr;
+    TypeThing *infer_type = nullptr;
 
     IRContext(llvm::LLVMContext& c, llvm::IRBuilder<>& b, llvm::Module& m)
         : ctx(c)
@@ -31,11 +32,13 @@ class IRCOptions {
 private:
     IRContext& ir;
     bool prev_unpack_stored;
+    TypeThing* prev_infer_type;
 
 public:
     IRCOptions(IRContext& ir)
         : ir(ir)
         , prev_unpack_stored(ir.unpack_stored)
+        , prev_infer_type(ir.infer_type)
     {
     }
     IRCOptions& unpackStored()
@@ -48,8 +51,14 @@ public:
         ir.unpack_stored = false;
         return *this;
     }
+    IRCOptions &withType(TypeThing *t)
+    {
+        ir.infer_type = t;
+        return *this;
+    }
     ~IRCOptions()
     {
         ir.unpack_stored = prev_unpack_stored;
+        ir.infer_type = prev_infer_type;
     }
 };
