@@ -37,6 +37,7 @@ enum class TypeKind : uint8_t {
     GENERIC_FUNC,
     I_NULL,
     USER_TYPE,
+    SLICE,
 };
 
 struct TypeThing;
@@ -86,9 +87,13 @@ struct UserType {
     std::string iden;
 };
 
+struct SliceType {
+    TypeThing *element;
+};
+
 using TypeData = std::variant<NullableType, RegionType, PtrType,
     ArrType, StructType, FuncType, MetaType, VarType,
-    GenericFuncType, UserType>;
+    GenericFuncType, UserType, SliceType>;
 
 struct TypeThing {
     TypeKind kind;
