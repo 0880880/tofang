@@ -88,7 +88,7 @@ struct UserType {
 };
 
 struct SliceType {
-    TypeThing *element;
+    TypeThing* element;
 };
 
 using TypeData = std::variant<NullableType, RegionType, PtrType,
@@ -218,6 +218,8 @@ public:
     TypeThing* getStruct(const std::string& name);
 
     TypeThing* getUserType(const std::string& name);
+
+    TypeThing* getSlice(TypeThing* element);
 
     TypeThing* substitute(
         TypeThing* t,

@@ -279,18 +279,18 @@ TypeThing* TypeInterner::getStruct(const string& name)
     return t;
 }
 
-TypeThing* TypeInterner::getUserType(const std::string& name)
+TypeThing* TypeInterner::getSlice(TypeThing* element)
 {
     TypeKey key {};
-    key.kind = TypeKind::USER_TYPE;
-    key.name = name;
+    key.kind = TypeKind::SLICE;
+    key.a = element;
 
     auto it = table.find(key);
     if (it != table.end()) {
         return it->second;
     }
 
-    auto* t = new TypeThing { .kind = TypeKind::USER_TYPE, .data = UserType { name } };
+    auto* t = new TypeThing { .kind = TypeKind::SLICE, .data = SliceType { element } };
 
     table[key] = t;
     return t;
