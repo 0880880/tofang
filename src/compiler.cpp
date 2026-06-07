@@ -80,6 +80,7 @@ vector<Lexer::Token> Compiler::tokenize(const string& source)
     lexer.token("\\b(?:void|bool|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64)\\b", "PRIMITIVE");
     lexer.token("[a-zA-Z_][a-zA-Z0-9_]*", "IDENTIFIER");
     lexer.token("\\?", "QUESTION");
+    lexer.token("\\.\\.", "RANGE");
     lexer.token(R"(\+\+|--|\|\||&&|==|!=|>=|<=|\+|-|/|\*|@|&|\^|\||>|<|!)", "OP");
     lexer.token("=", "EQUAL");
     lexer.token(",", "COMMA");
