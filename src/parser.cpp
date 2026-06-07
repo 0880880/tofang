@@ -190,14 +190,13 @@ Named<Expr*> Parser::primary(Ptr& p)
         }
         if (p.is("STRING")) {
             l->type = LiteralExpr::Type::String;
-            auto init = new StructInitExpr();
+            const auto init = new StructInitExpr();
             init->struct_type = interner->getStruct("String");
             symbols->unresolved_types.push_back(init->struct_type);
             init->names.push_back(Lexer::Token { "IDENTIFIER", "data" });
             init->names.push_back(Lexer::Token { "IDENTIFIER", "len" });
-            std::string_view sub = std::string_view((*p).value).substr(1, (*p).value.length() - 2);
             init->values.push_back(l);
-            init->values.push_back(new LiteralExpr(LiteralExpr::Type::Integer, Lexer::Token { "INTEGER", to_string(sub.length()) }));
+            init->values.push_back(new LiteralExpr(LiteralExpr::Type::Integer, Lexer::Token { "INTEGER", to_string((*p).value.length()) }));
             ++p;
             return symbols->open(init);
         }
