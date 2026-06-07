@@ -200,8 +200,6 @@ public:
 
     TypeThing* getPointer(TypeThing* pointee);
 
-    TypeThing* getReference(TypeThing* referee);
-
     TypeThing* getArray(TypeThing* elem, size_t len);
 
     TypeThing* getFunction(const std::vector<TypeThing*>& params,
