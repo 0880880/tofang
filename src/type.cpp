@@ -103,6 +103,8 @@ Type* TypeThing::getLLVM(const IRContext& ir)
         return std::get<StructDecl>(std::get<StructType>(data).decl->data).llvm;
     case TypeKind::META:
         return std::get<MetaType>(data).type->getLLVM(ir);
+    case TypeKind::SLICE:
+        return llvm::StructType::get(ir.ctx, {std::get<SliceType>(data).element->getLLVM(ir), type_u64->getLLVM(ir)});
     case TypeKind::NULLABLE:
         const std::vector<llvm::Type *> elements = {type_bool->getLLVM(ir), std::get<NullableType>(data).base->getLLVM(ir)};
         return llvm::StructType::get(ir.ctx, elements);
