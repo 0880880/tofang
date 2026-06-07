@@ -24,6 +24,7 @@
 - ~Control characters~
 - Slices [..] -> arr[a..b] and ptr[a..b]
 - Slice arithmetic
+- Tidy
 - Standard library
 - Variadic functions
 - FMT library
