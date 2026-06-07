@@ -67,6 +67,8 @@ string TypeThing::toString()
     }
     case TypeKind::I_NULL:
         return "inull";
+    case TypeKind::SLICE:
+        return std::get<SliceType>(data).element->toString() + "[..]";
     }
 }
 using Type = llvm::Type;
