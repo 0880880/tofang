@@ -12,7 +12,17 @@
 static llvm::Value* cast(const IRContext& ir, llvm::Value* val, TypeThing* from,
                          TypeThing* to)
 {
-    if (from == to || from->kind == to->kind || from->kind == TypeKind::I_NULL && to->kind == TypeKind::NULLABLE)
+    if (from->kind == TypeKind::NULLABLE && to->kind == TypeKind::BOOL)
+    {
+        llvm::Value* is_null = ir.builder.CreateExtractValue(val, {0}, "is_null");
+        return is_null;
+    }
+    if (from->kind == TypeKind::NULLABLE && to == std::get<NullableType>(from->data).base)
+    {
+        llvm::Value* n_obj = ir.builder.CreateExtractValue(val, {1}, "nullable_obj");
+        return n_obj;
+    }
+    if (from == to || from->kind == to->kind || (from->kind == TypeKind::I_NULL && to->kind == TypeKind::NULLABLE))
     {
         return val;
     }
@@ -63,8 +73,7 @@ llvm::Value* LiteralExpr::codegen(IRContext& ir)
 {
     if (type == String)
     {
-        const std::string_view view = std::string_view(value.value).substr(1, value.value.length() - 2);
-        return wrapNullable(ir,ir.builder.CreateGlobalString(view, "str_global", 0, nullptr, false));
+        return wrapNullable(ir,ir.builder.CreateGlobalString(value.value, "str_global", 0, nullptr, false));
     }
     switch (t->kind)
     {
@@ -444,9 +453,11 @@ llvm::Value* CallExpr::codegen(IRContext& ir)
         {
             llvm_args.reserve(args.size());
         }
-        for (Expr* a : args)
+        const auto [params, return_type] = std::get<FuncType>(func->t->data);
+        for (size_t i = 0; i < args.size(); ++i)
         {
-            llvm_args.push_back(a->codegen(ir));
+            Expr *a = args[i];
+            llvm_args.push_back(cast(ir, a->codegen(ir), a->t, params[i]));
         }
     }
 
@@ -480,7 +491,12 @@ llvm::Value* ArrayExpr::codegen(IRContext& ir)
 llvm::Value* IndexExpr::codegen(IRContext& ir)
 {
     auto *arr_ty = arr->t;
-    auto *ptr = arr->codegen(ir);
+    llvm::Value *ptr = nullptr;
+    {
+        IRCOptions _(ir);
+        _.unpackStored();
+        ptr = arr->codegen(ir);
+    }
     if (arr_ty->kind == TypeKind::NULLABLE)
     {
         ptr = ir.builder.CreateExtractValue(ptr, {1}, "nullable_obj");
@@ -747,15 +763,9 @@ llvm::Value* codegenCondition(IRContext& ir, Expr* condition)
         _.unpackStored();
         llvm::Value* cond = condition->codegen(ir);
 
-        std::cout << condition->t->toString() << ":internal    " << std::endl;
-        cond->getType()->print(llvm::outs());
-        llvm::outs() << " ";
-        condition->t->getLLVM(ir)->print(llvm::outs());
-        llvm::outs() << "\n";
         if (condition->t->kind == TypeKind::NULLABLE)
         {
             llvm::Value* is_null = ir.builder.CreateExtractValue(cond, {0}, "is_null");
-            std::cout << condition->t->toString() << ":internal    " << std::endl;
             return is_null;
         }
         return cond;
