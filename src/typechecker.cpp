@@ -275,6 +275,7 @@ void TypeChecker::close(ASTNode* node)
             lit->setType(type_bool);
             break;
         case LiteralExpr::Char:
+            lit->value.value = std::to_string(lit->value.value[0]);
             lit->setType(type_u8);
             break;
         case LiteralExpr::MetaType:
