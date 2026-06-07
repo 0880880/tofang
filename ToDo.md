@@ -21,9 +21,11 @@
 - ~Arrays~
 - ~Import~
 - ~Strings~
+- ~Control characters~
+- Slices [..] -> arr[a..b] and ptr[a..b]
+- Slice arithmetic
 - Standard library
 - Variadic functions
-- Control characters
 - FMT library
 - Type Check pointer deref
 - Type Check struct attribute
