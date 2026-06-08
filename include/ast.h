@@ -82,6 +82,7 @@ public:
 
     llvm::Value* codegen(IRContext& ir) override;
 };
+
 class BinaryExpr : public Expr {
 public:
     Expr* left = nullptr;
@@ -220,6 +221,39 @@ public:
     std::vector<ASTNode*> walk() override { return { arr, i }; }
 
     string toString() override { return "IndexExpr"; }
+
+    llvm::Value* codegen(IRContext& ir) override;
+};
+
+class SliceExpr : public Expr
+{
+public:
+    Expr* arr = nullptr;
+    std::optional<Expr*> from = nullptr;
+    std::optional<Expr*> to = nullptr;
+
+    SliceExpr(Expr* arr, std::optional<Expr*> from, std::optional<Expr*> to)
+        : arr(arr)
+          , from(from)
+          , to(to)
+    {
+    }
+
+    std::vector<ASTNode*> walk() override
+    {
+        std::vector<ASTNode*> nodes = {arr};
+        if (from)
+        {
+            nodes.push_back(from.value());
+        }
+        if (to)
+        {
+            nodes.push_back(to.value());
+        }
+        return nodes;
+    }
+
+    string toString() override { return "SliceExpr"; }
 
     llvm::Value* codegen(IRContext& ir) override;
 };
