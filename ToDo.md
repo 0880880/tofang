@@ -23,7 +23,7 @@
 - ~Strings~
 - ~Control characters~
 - ~Slices [..] -> arr[a..b] and ptr[a..b]~
-- References
+- ~References~
 - Slice arithmetic
 - Tidy
 - Standard library
