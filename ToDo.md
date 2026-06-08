@@ -14,7 +14,7 @@
 - ~Dereferencing~
 - ~Indexing IR~
 - ~Functions in structs Parsing~
-- ~Rewrite a -> self.a in struct member functions~
+- ~Rewrite a → self.a in struct member functions~
 - ~Functions in structs Type Checking~
 - ~Functions in structs IR~
 - ~Definition level checks~
@@ -24,7 +24,8 @@
 - ~Control characters~
 - ~Slices [..] -> arr[a..b] and ptr[a..b]~
 - ~References~
-- Slice arithmetic
+- read-only slice.ptr and slice.len
+- Remove pointer indexing / error
 - Tidy
 - Standard library
 - Variadic functions
