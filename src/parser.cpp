@@ -96,6 +96,11 @@ optional<TypeThing*> Parser::type(Ptr& p)
             if (p.is("RBRACKET")) {
                 ++p;
                 t = interner->getArray(t, -1);
+            }
+            else if (p.is("RANGE"))
+            {
+                ++p;
+                t = interner->getSlice(t);
             } else {
                 int size = std::stoi((*p).value);
                 p.expect("INTEGER");
