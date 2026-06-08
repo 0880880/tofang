@@ -511,6 +511,17 @@ llvm::Value* IndexExpr::codegen(IRContext& ir)
         }
         return ep;
     }
+    else if (arr_ty->kind == TypeKind::SLICE)
+    {
+        auto* slice_ptr = ir.builder.CreateExtractValue(ptr, {0}, "slice_ptr");
+        auto* ep = ir.builder.CreateGEP(std::get<SliceType>(arr_ty->data).element->getLLVM(ir), slice_ptr,
+                                        {i->codegen(ir)}, "index_ptr");
+        if (ir.unpack_stored)
+        {
+            return ir.builder.CreateLoad(std::get<ArrType>(arr_ty->data).element->getLLVM(ir), ep, "load_arr_index");
+        }
+        return ep;
+    }
     else if (arr_ty->kind == TypeKind::POINTER)
     {
         auto* ep = ir.builder.CreateGEP(std::get<PtrType>(arr_ty->data).pointee->getLLVM(ir), ptr,
@@ -522,6 +533,121 @@ llvm::Value* IndexExpr::codegen(IRContext& ir)
         return ep;
     }
     throw runtime_error("What this can't be!!  " + arr_ty->toString());
+}
+
+llvm::Value* SliceExpr::codegen(IRContext& ir)
+{
+    auto* arr_ty = arr->t;
+    llvm::Value* ptr = nullptr;
+    llvm::Value* from_code = nullptr;
+    llvm::Value* to_code = nullptr;
+    {
+        IRCOptions _(ir);
+        _.unpackStored();
+        ptr = arr->codegen(ir);
+    }
+    if (arr_ty->kind == TypeKind::NULLABLE)
+    {
+        ptr = ir.builder.CreateExtractValue(ptr, {1}, "nullable_obj");
+        arr_ty = std::get<NullableType>(arr_ty->data).base;
+    }
+
+    {
+        IRCOptions _(ir);
+        _.unpackStored();
+        if (from)
+        {
+            from_code = from.value()->codegen(ir);
+        }
+        else
+        {
+            from_code = ir.builder.getInt64(0);
+        }
+        if (to)
+        {
+            to_code = to.value()->codegen(ir);
+        }
+        else
+        {
+            if (arr_ty->kind == TypeKind::ARRAY)
+            {
+                if (auto* static_arr = llvm::dyn_cast<llvm::ArrayType>(arr_ty->getLLVM(ir)))
+                {
+                    to_code = ir.builder.getInt64(static_arr->getNumElements());
+                }
+                else
+                {
+                    throw std::runtime_error("Unreachable");
+                }
+            }
+            else if (arr_ty->kind == TypeKind::SLICE)
+            {
+                to_code = ir.builder.CreateExtractValue(ptr, {1}, "slice_len");
+            }
+            else if (arr_ty->kind == TypeKind::POINTER)
+            {
+                throw std::runtime_error("Unreachable");
+            }
+        }
+    }
+
+    llvm::Value* ep;
+    if (arr_ty->kind == TypeKind::ARRAY)
+    {
+        ep = ir.builder.CreateGEP(arr_ty->getLLVM(ir), ptr, {from_code}, "index_arr");
+    }
+    else if (arr_ty->kind == TypeKind::SLICE)
+    {
+        auto* slice_ptr = ir.builder.CreateExtractValue(ptr, {0}, "slice_ptr");
+        ep = ir.builder.CreateGEP(std::get<SliceType>(arr_ty->data).element->getLLVM(ir), slice_ptr,
+                                  {from_code}, "index_ptr");
+    }
+    else if (arr_ty->kind == TypeKind::POINTER)
+    {
+        ep = ir.builder.CreateGEP(std::get<PtrType>(arr_ty->data).pointee->getLLVM(ir), ptr,
+                                  {from_code}, "index_ptr");
+    }
+    else
+    {
+        throw runtime_error("What this can't be!!  " + arr_ty->toString());
+    }
+    auto* slice_type = llvm::dyn_cast<llvm::StructType>(t->getLLVM(ir));
+    assert(slice_type != nullptr);
+    llvm::Value* slice_ptr = ir.builder.CreateAlloca(slice_type, nullptr, "slice");
+
+    llvm::Value* ptr_addr = ir.builder.CreateStructGEP(slice_type, slice_ptr, 0, "slice.ptr");
+    ir.builder.CreateStore(ep, ptr_addr);
+
+    llvm::Value* len_addr = ir.builder.CreateStructGEP(slice_type, slice_ptr, 1, "slice.len");
+    ir.builder.CreateStore(ir.builder.CreateSub(to_code, from_code, "slice_len"), len_addr);
+
+    llvm::Value* ret = slice_ptr;
+    if (ir.unpack_stored)
+    {
+        ret = ir.builder.CreateLoad(slice_type, slice_ptr, "loaded_obj");
+    }
+    if (ir.infer_type->kind == TypeKind::NULLABLE)
+    {
+        auto* ty = ir.infer_type->getLLVM(ir);
+        llvm::AllocaInst* struct_alloca = ir.builder.CreateAlloca(ty, nullptr, "nullable_wrapper");
+
+        llvm::Value* not_null_ptr = ir.builder.CreateStructGEP(ty, struct_alloca, 0, "not_null.ptr");
+
+        llvm::Value* obj_ptr = ir.builder.CreateStructGEP(ty, struct_alloca, 1, "obj.ptr");
+
+        ir.builder.CreateStore(
+            llvm::ConstantInt::getBool(ir.ctx, true),
+            not_null_ptr
+        );
+
+        ir.builder.CreateStore(
+            ret,
+            obj_ptr
+        );
+
+        return struct_alloca;
+    }
+    return ret;
 }
 
 llvm::Value* AssignStmt::codegen(IRContext& ir)
