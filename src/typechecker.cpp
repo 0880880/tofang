@@ -657,6 +657,14 @@ void TypeChecker::close(ASTNode* node)
             }
             unary->setType(std::get<PtrType>(unary->right->t->data).pointee);
         }
+        else if (unary->op.value == "&")
+        {
+            if (unary->right->t->kind != TypeKind::I_NULL)
+            {
+                error("Cannot reference null");
+            }
+            unary->setType(interner->getPointer(unary->right->t));
+        }
     }
     else if (auto cal = dynamic_cast<CallExpr*>(node))
     {
