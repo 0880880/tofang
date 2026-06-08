@@ -22,7 +22,8 @@
 - ~Import~
 - ~Strings~
 - ~Control characters~
-- Slices [..] -> arr[a..b] and ptr[a..b]
+- ~Slices [..] -> arr[a..b] and ptr[a..b]~
+- References
 - Slice arithmetic
 - Tidy
 - Standard library
