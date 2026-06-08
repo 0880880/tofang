@@ -60,7 +60,7 @@ public:
         return "LiteralExpr<" + type_string + ":" + value.value + ">";
     }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class ArrayExpr : public Expr {
@@ -80,7 +80,7 @@ public:
 
     string toString() override { return "ArrayExpr<" + arr_type->toString() + ">[" + std::to_string(elements.size()) + "]"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class BinaryExpr : public Expr {
@@ -100,7 +100,7 @@ public:
 
     string toString() override { return "BinaryExpr<" + op.value + ">"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class UnaryExpr : public Expr {
@@ -118,7 +118,7 @@ public:
 
     string toString() override { return "UnaryExpr<" + op.value + ">"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class GroupingExpr : public Expr {
@@ -134,7 +134,7 @@ public:
 
     string toString() override { return "GroupingExpr"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class VariableExpr : public Expr {
@@ -151,7 +151,7 @@ public:
 
     string toString() override { return "VariableExpr<" + name.value + ">"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class AttribExpr : public Expr {
@@ -169,7 +169,7 @@ public:
 
     string toString() override { return "AttribExpr<" + bar.value + ">"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class CallExpr : public Expr {
@@ -204,7 +204,7 @@ public:
         return "CallExpr<" + buf + ">";
     }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class IndexExpr : public Expr {
@@ -222,7 +222,7 @@ public:
 
     string toString() override { return "IndexExpr"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class SliceExpr : public Expr
@@ -255,7 +255,7 @@ public:
 
     string toString() override { return "SliceExpr"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class UpdateExpr : public Expr {
@@ -273,7 +273,7 @@ public:
 
     string toString() override { return "UpdateExpr"; }
 
-    llvm::Value* codegen(IRContext& ir) override { throw std::runtime_error("Not implemented"); } // TODO
+    IRValue codegen(IRContext& ir) override { throw std::runtime_error("Not implemented"); } // TODO
 };
 
 class AssignStmt : public Stmt {
@@ -299,7 +299,7 @@ public:
         return "AssignStmt<" + type->toString() + " " + name.value + ">";
     }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class AssignExpr : public Expr {
@@ -323,7 +323,7 @@ public:
         return "AssignExpr<" + left->toString() + " " + op.value + " " + right->toString() + ">";
     }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class ExprStmt : public Stmt {
@@ -339,7 +339,7 @@ public:
 
     string toString() override { return "ExprStmt"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class BlockStmt : public Stmt {
@@ -364,7 +364,7 @@ public:
 
     void finalize(IRContext& ir);
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class FuncStmt : public Stmt {
@@ -401,7 +401,7 @@ public:
         return "FuncStmt<" + buf + "> <" + returnType->toString() + " " + name.value + ">";
     }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class ReturnStmt : public Stmt {
@@ -412,7 +412,7 @@ public:
 
     string toString() override { return "ReturnStmt"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class StructStmt : public Stmt {
@@ -460,7 +460,7 @@ public:
         return "Struct{ " + defs + "}";
     }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class StructInitExpr : public Expr {
@@ -491,7 +491,7 @@ public:
         return "StructInit{ " + defs + "}";
     }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class IfStmt;
@@ -505,7 +505,7 @@ public:
 
     string toString() override { return "ElseStmt"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class IfStmt : public Stmt {
@@ -529,7 +529,7 @@ public:
 
     string toString() override { return "IfStmt"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class ForStmt : public Stmt {
@@ -546,7 +546,7 @@ public:
 
     string toString() override { return "ForStmt"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class RegionStmt : public Stmt {
@@ -565,9 +565,9 @@ public:
 
     string toString() override { return "RegionStmt<" + name.value + ">"; }
 
-    using diff_t = std::iterator_traits<std::vector<llvm::Value*>::iterator>::difference_type;
+    using diff_t = std::iterator_traits<std::vector<IRValue>::iterator>::difference_type;
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class ImportStmt : public Stmt {
@@ -578,7 +578,7 @@ public:
 
     string toString() override { return "ImportStmt(" + path[path.size() - 1] + ")"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };
 
 class Program : public Stmt {
@@ -598,5 +598,5 @@ public:
 
     string toString() override { return "Program"; }
 
-    llvm::Value* codegen(IRContext& ir) override;
+    IRValue codegen(IRContext& ir) override;
 };

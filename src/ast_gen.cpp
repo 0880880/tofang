@@ -53,7 +53,7 @@ static llvm::Value* cast(const IRContext& ir, llvm::Value* val, TypeThing* from,
     throw std::runtime_error("Unhandled type: " + from->toString() + " -> " + to->toString());
 }
 
-llvm::Value* wrapNullable(const IRContext &ir, llvm::Constant *value)
+IRValue wrapNullable(const IRContext& ir, llvm::Constant* value)
 {
     if (ir.infer_type != nullptr && ir.infer_type->kind == TypeKind::NULLABLE)
     {
@@ -69,7 +69,7 @@ llvm::Value* wrapNullable(const IRContext &ir, llvm::Constant *value)
     return value;
 }
 
-llvm::Value* LiteralExpr::codegen(IRContext& ir)
+IRValue LiteralExpr::codegen(IRContext& ir)
 {
     if (type == String)
     {
@@ -119,7 +119,7 @@ llvm::Value* LiteralExpr::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* BinaryExpr::codegen(IRContext& ir)
+IRValue BinaryExpr::codegen(IRContext& ir)
 {
     string v = op.value;
     auto lhs = cast(ir, left->codegen(ir), left->t, t);
@@ -128,170 +128,199 @@ llvm::Value* BinaryExpr::codegen(IRContext& ir)
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFAdd(lhs, rhs, "fp_add");
+            return {ir.builder.CreateFAdd(lhs, rhs, "fp_add"), true};
         }
         else
         {
-            return ir.builder.CreateAdd(lhs, rhs, "i_add");
+            return {ir.builder.CreateAdd(lhs, rhs, "i_add"), true};
         }
     }
     else if (v == "-")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFSub(lhs, rhs, "fp_sub");
+            return {ir.builder.CreateFSub(lhs, rhs, "fp_sub"), true};
         }
         else
         {
-            return ir.builder.CreateSub(lhs, rhs, "i_sub");
+            return {ir.builder.CreateSub(lhs, rhs, "i_sub"), true};
         }
     }
     else if (v == "*")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFMul(lhs, rhs, "fp_mul");
+            return {ir.builder.CreateFMul(lhs, rhs, "fp_mul"), true};
         }
         else
         {
-            return ir.builder.CreateMul(lhs, rhs, "i_mul");
+            return {ir.builder.CreateMul(lhs, rhs, "i_mul"), true};
         }
     }
     else if (v == "/")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFDiv(lhs, rhs, "fp_div");
+            return {ir.builder.CreateFDiv(lhs, rhs, "fp_div"), true};
         }
         else
         {
-            return isSigned(t)
-                       ? ir.builder.CreateSDiv(lhs, rhs, "signed_div")
-                       : ir.builder.CreateUDiv(lhs, rhs, "unsigned_div");
+            return {
+                isSigned(t)
+                    ? ir.builder.CreateSDiv(lhs, rhs, "signed_div")
+                    : ir.builder.CreateUDiv(lhs, rhs, "unsigned_div"),true};
         }
     }
     else if (v == "&" || v == "&&")
     {
-        return ir.builder.CreateAnd(lhs, rhs, "and");
+        return {ir.builder.CreateAnd(lhs, rhs, "and"),true};
     }
     else if (v == "|" || v == "||")
     {
-        return ir.builder.CreateOr(lhs, rhs, "or");
+        return {ir.builder.CreateOr(lhs, rhs, "or"),true};
     }
     else if (v == "^")
     {
-        return ir.builder.CreateXor(lhs, rhs, "xor");
+        return {ir.builder.CreateXor(lhs, rhs, "xor"),true};
     }
     else if (v == "==")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, lhs,
-                                         rhs, "fcmp_eq");
+            return {
+                ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, lhs,
+                                      rhs, "fcmp_eq"),true};
         }
         else
         {
-            return ir.builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, lhs,
-                                         rhs, "icmp_eq");
+            return {
+                ir.builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, lhs,
+                                      rhs, "icmp_eq"),true};
         }
     }
     else if (v == "!=")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_ONE, lhs,
-                                         rhs, "fcmp_neq");
+            return {
+                ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_ONE, lhs,
+                                      rhs, "fcmp_neq"),
+                true
+            };
         }
         else
         {
-            return ir.builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_NE, lhs,
-                                         rhs, "icmp_neq");
+            return {
+                ir.builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_NE, lhs,
+                                      rhs, "icmp_neq"),
+                true
+            };
         }
     }
     else if (v == ">")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OGT, lhs,
-                                         rhs, "fcmp_gt");
+            return {
+                ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OGT, lhs,
+                                      rhs, "fcmp_gt"),true};
         }
         else
         {
-            return ir.builder.CreateICmp(isSigned(t)
-                                             ? llvm::CmpInst::Predicate::ICMP_SGT
-                                             : llvm::CmpInst::Predicate::ICMP_UGT,
-                                         lhs, rhs, "icmp_gt");
+            return {ir.builder.CreateICmp(isSigned(t)
+                                              ? llvm::CmpInst::Predicate::ICMP_SGT
+                                              : llvm::CmpInst::Predicate::ICMP_UGT,
+                                          lhs, rhs, "icmp_gt"),
+                true
+            };
         }
     }
     else if (v == "<")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OLT, lhs,
-                                         rhs, "fcmp_lt");
+            return {
+                ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OLT, lhs,
+                                      rhs, "fcmp_lt"),true};
         }
         else
         {
-            return ir.builder.CreateICmp(isSigned(t)
-                                             ? llvm::CmpInst::Predicate::ICMP_SLT
-                                             : llvm::CmpInst::Predicate::ICMP_ULT,
-                                         lhs, rhs, "icmp_lt");
+            return {ir.builder.CreateICmp(isSigned(t)
+                                              ? llvm::CmpInst::Predicate::ICMP_SLT
+                                              : llvm::CmpInst::Predicate::ICMP_ULT,
+                                          lhs, rhs, "icmp_lt"),
+                true
+            };
         }
     }
     else if (v == ">=")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OGE, lhs,
-                                         rhs, "fcmp_ge");
+            return {
+                ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OGE, lhs,
+                                      rhs, "fcmp_ge"),true};
         }
         else
         {
-            return ir.builder.CreateICmp(isSigned(t)
-                                             ? llvm::CmpInst::Predicate::ICMP_SGE
-                                             : llvm::CmpInst::Predicate::ICMP_UGE,
-                                         lhs, rhs, "icmp_ge");
+            return {
+                ir.builder.CreateICmp(isSigned(t)
+                                          ? llvm::CmpInst::Predicate::ICMP_SGE
+                                          : llvm::CmpInst::Predicate::ICMP_UGE,
+                                      lhs, rhs, "icmp_ge"),true};
         }
     }
     else if (v == "<=")
     {
         if (isFloat(t))
         {
-            return ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OLE, lhs,
-                                         rhs, "fcmp_le");
+            return {
+                ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OLE, lhs,
+                                      rhs, "fcmp_le"),
+                true
+            };
         }
         else
         {
-            return ir.builder.CreateICmp(isSigned(t)
-                                             ? llvm::CmpInst::Predicate::ICMP_SLE
-                                             : llvm::CmpInst::Predicate::ICMP_ULE,
-                                         lhs, rhs, "icmp_le");
+            return {
+                ir.builder.CreateICmp(isSigned(t)
+                                          ? llvm::CmpInst::Predicate::ICMP_SLE
+                                          : llvm::CmpInst::Predicate::ICMP_ULE,
+                                      lhs, rhs, "icmp_le"),
+                true
+            };
         }
     }
     // TODO handle comparisons
+    // TODO pointers
     throw runtime_error("Unhandled operation " + v);
 }
 
-llvm::Value* UnaryExpr::codegen(IRContext& ir)
+IRValue UnaryExpr::codegen(IRContext& ir)
 {
     const string v = op.value;
     if (v == "+")
     {
         const auto rhs = right->codegen(ir);
-        return rhs;
+        return {rhs, true};
     }
     if (v == "-")
     {
         const auto rhs = right->codegen(ir);
         if (isInt(right->t))
         {
-            return ir.builder.CreateSub(llvm::ConstantInt::get(rhs->getType(), 0),
-                                        rhs);
+            return {
+                ir.builder.CreateSub(llvm::ConstantInt::get(rhs.value->getType(), 0),
+                                     rhs.value),
+                true
+            };
         }
         if (isFloat(right->t))
         {
-            return ir.builder.CreateFSub(llvm::ConstantFP::get(rhs->getType(), 0),
-                                         rhs);
+            return {
+                ir.builder.CreateFSub(llvm::ConstantFP::get(rhs.value->getType(), 0),
+                                      rhs.value),true
+            };
         }
     }
     else if (v == "*")
@@ -299,25 +328,29 @@ llvm::Value* UnaryExpr::codegen(IRContext& ir)
         if (ir.unpack_stored)
         {
             const auto rhs = right->codegen(ir);
-            return ir.builder.CreateLoad(std::get<PtrType>(right->t->data).pointee->getLLVM(ir), rhs, "deref");
+            return ir.builder.CreateLoad(std::get<PtrType>(right->t->data).pointee->getLLVM(ir), rhs.value, "deref");
         }
-        llvm::Value* rhs = nullptr;
         {
             IRCOptions _(ir);
             _.unpackStored();
-            rhs = right->codegen(ir);
+            return right->codegen(ir);
         }
-        return rhs;
+    }
+    else if (v == "&")
+    {
+        IRCOptions _(ir);
+        _.packStored();
+        return {right->codegen(ir), true};
     }
     throw runtime_error("Unexpected error UnaryExpr");
 }
 
-llvm::Value* GroupingExpr::codegen(IRContext& ir)
+IRValue GroupingExpr::codegen(IRContext& ir)
 {
     return expression->codegen(ir);
 }
 
-llvm::Value* VariableExpr::codegen(IRContext& ir)
+IRValue VariableExpr::codegen(IRContext& ir)
 {
     if (decl->kind == DeclKind::FUNC)
     {
@@ -338,7 +371,7 @@ llvm::Value* VariableExpr::codegen(IRContext& ir)
     return decl->alloca;
 }
 
-llvm::Value* AttribExpr::codegen(IRContext& ir)
+IRValue AttribExpr::codegen(IRContext& ir)
 {
     llvm::Value* lhs = nullptr;
     {
@@ -394,7 +427,7 @@ llvm::Value* AttribExpr::codegen(IRContext& ir)
     throw runtime_error("I don't know attribute of stuff other than struct is not allowed");
 }
 
-llvm::Value* CallExpr::codegen(IRContext& ir)
+IRValue CallExpr::codegen(IRContext& ir)
 {
     if (const auto attr = dynamic_cast<AttribExpr*>(func))
     {
@@ -465,7 +498,7 @@ llvm::Value* CallExpr::codegen(IRContext& ir)
     return ir.builder.CreateCall(f, llvm_args);
 }
 
-llvm::Value* ArrayExpr::codegen(IRContext& ir)
+IRValue ArrayExpr::codegen(IRContext& ir)
 {
     auto* llvm_arr_type = llvm::cast<llvm::ArrayType>(arr_type->getLLVM(ir));
 
@@ -488,7 +521,7 @@ llvm::Value* ArrayExpr::codegen(IRContext& ir)
     return arr_alloca;
 }
 
-llvm::Value* IndexExpr::codegen(IRContext& ir)
+IRValue IndexExpr::codegen(IRContext& ir)
 {
     auto *arr_ty = arr->t;
     llvm::Value *ptr = nullptr;
@@ -525,7 +558,7 @@ llvm::Value* IndexExpr::codegen(IRContext& ir)
     else if (arr_ty->kind == TypeKind::POINTER)
     {
         auto* ep = ir.builder.CreateGEP(std::get<PtrType>(arr_ty->data).pointee->getLLVM(ir), ptr,
-                                        i->codegen(ir), "index_ptr");
+                                        {i->codegen(ir)}, "index_ptr");
         if (ir.unpack_stored)
         {
             return ir.builder.CreateLoad(std::get<PtrType>(arr_ty->data).pointee->getLLVM(ir), ep, "load_ptr_index");
@@ -535,7 +568,7 @@ llvm::Value* IndexExpr::codegen(IRContext& ir)
     throw runtime_error("What this can't be!!  " + arr_ty->toString());
 }
 
-llvm::Value* SliceExpr::codegen(IRContext& ir)
+IRValue SliceExpr::codegen(IRContext& ir)
 {
     auto* arr_ty = arr->t;
     llvm::Value* ptr = nullptr;
@@ -650,21 +683,21 @@ llvm::Value* SliceExpr::codegen(IRContext& ir)
     return ret;
 }
 
-llvm::Value* AssignStmt::codegen(IRContext& ir)
+IRValue AssignStmt::codegen(IRContext& ir)
 {
     llvm::AllocaInst* x = ir.fn_entry->CreateAlloca(type->getLLVM(ir), nullptr, name.value);
     {
         IRCOptions _(ir);
         _.unpackStored();
         _.withType(type);
-        auto* val = value->codegen(ir);
+        llvm::Value* val = value->codegen(ir);
         ir.builder.CreateStore(val, x);
     }
     decl->alloca = x;
     return nullptr;
 }
 
-llvm::Value* AssignExpr::codegen(IRContext& ir)
+IRValue AssignExpr::codegen(IRContext& ir)
 {
     llvm::Value* lhs = left->codegen(ir);
     assert(lhs != nullptr);
@@ -677,7 +710,7 @@ llvm::Value* AssignExpr::codegen(IRContext& ir)
     return lhs;
 }
 
-llvm::Value* ExprStmt::codegen(IRContext& ir)
+IRValue ExprStmt::codegen(IRContext& ir)
 {
     return expression->codegen(ir);
 }
@@ -694,7 +727,7 @@ void BlockStmt::finalize(IRContext& ir)
     }
 }
 
-llvm::Value* BlockStmt::codegen(IRContext& ir)
+IRValue BlockStmt::codegen(IRContext& ir)
 {
     defer.clear();
     cleanup.clear();
@@ -712,7 +745,7 @@ llvm::Value* BlockStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* FuncStmt::codegen(IRContext& ir)
+IRValue FuncStmt::codegen(IRContext& ir)
 {
     auto& func_decl = std::get<FuncDecl>(decl->data);
     std::vector<llvm::Type*> params;
@@ -778,7 +811,7 @@ llvm::Value* FuncStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* ReturnStmt::codegen(IRContext& ir)
+IRValue ReturnStmt::codegen(IRContext& ir)
 {
     llvm::Value* ret_val = nullptr;
     {
@@ -802,7 +835,7 @@ llvm::Value* ReturnStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* StructStmt::codegen(IRContext& ir)
+IRValue StructStmt::codegen(IRContext& ir)
 {
     auto* s = llvm::StructType::create(ir.ctx, name.value);
     std::get<StructDecl>(decl->data).llvm = s;
@@ -824,7 +857,7 @@ llvm::Value* StructStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* StructInitExpr::codegen(IRContext& ir)
+IRValue StructInitExpr::codegen(IRContext& ir)
 {
     auto& ddata = std::get<StructDecl>(std::get<StructType>(struct_type->data).decl->data);
     auto* ptr = ir.builder.CreateAlloca(ddata.llvm, nullptr, "obj");
@@ -880,7 +913,7 @@ llvm::Value* StructInitExpr::codegen(IRContext& ir)
     return ret;
 }
 
-llvm::Value* ElseStmt::codegen(IRContext& /*ir*/) { return nullptr; }
+IRValue ElseStmt::codegen(IRContext& /*ir*/) { return nullptr; }
 
 llvm::Value* codegenCondition(IRContext& ir, Expr* condition)
 {
@@ -898,7 +931,7 @@ llvm::Value* codegenCondition(IRContext& ir, Expr* condition)
     }
 }
 
-llvm::Value* IfStmt::codegen(IRContext& ir)
+IRValue IfStmt::codegen(IRContext& ir)
 {
     IfStmt* cur = this;
     llvm::BasicBlock* merge = llvm::BasicBlock::Create(ir.ctx, "merge", ir.current_function);
@@ -945,7 +978,7 @@ llvm::Value* IfStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* ForStmt::codegen(IRContext& ir)
+IRValue ForStmt::codegen(IRContext& ir)
 {
     if (init != nullptr)
     {
@@ -992,7 +1025,7 @@ llvm::Value* ForStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* RegionStmt::codegen(IRContext& ir)
+IRValue RegionStmt::codegen(IRContext& ir)
 {
     ir.blocks.push_back(&body);
     size_t allocations_size = 0;
@@ -1036,12 +1069,12 @@ llvm::Value* RegionStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-llvm::Value* ImportStmt::codegen(IRContext&  /*ir*/)
+IRValue ImportStmt::codegen(IRContext&  /*ir*/)
 {
     return nullptr;
 }
 
-llvm::Value* Program::codegen(IRContext& ir)
+IRValue Program::codegen(IRContext& ir)
 {
     for (auto& s : statements)
     {
