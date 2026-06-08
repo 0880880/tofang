@@ -226,9 +226,46 @@ Named<Expr*> Parser::postfix(Ptr& p)
             left = new AttribExpr(left, bar);
         } else if (p.is("LBRACKET")) {
             ++p;
-            auto ind = new IndexExpr(left, expr(p).get());
+            if (p.is("RANGE"))
+            {
+                ++p;
+                if (p.is("RBRACKET"))
+                {
+                    ++p;
+                    auto* slc = new SliceExpr(left, std::nullopt, std::nullopt);
+                    left = slc;
+                }
+                else
+                {
+                    auto* to = expr(p).get();
+                    auto* slc = new SliceExpr(left, std::nullopt, to);
+                    left = slc;
+                }
+            }
+            else
+            {
+                // TODO this is bad/unreadable but I can fix it later
+                auto* from = expr(p).get();
+                if (p.is("RANGE"))
+                {
+                    ++p;
+                    if (p.is("RBRACKET"))
+                    {
+                        ++p;
+                        auto* slc = new SliceExpr(left, from, std::nullopt);
+                        left = slc;
+                    }
+                    else
+                    {
+                        auto* to = expr(p).get();
+                        auto* slc = new SliceExpr(left, from, to);
+                        left = slc;
+                    }
+                }
+                auto* ind = new IndexExpr(left, from);
+                left = ind;
+            }
             p.expect("RBRACKET");
-            left = ind;
         } else if (p.isV("<")) {
             ++p;
             auto c = new CallExpr(left);
