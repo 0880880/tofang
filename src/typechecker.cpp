@@ -859,6 +859,21 @@ void TypeChecker::close(ASTNode* node)
             }
             error("Struct " + decl->name.value + " has no attribute " + att->bar.value);
         }
+        else if (att->foo->t->kind == TypeKind::SLICE)
+        {
+            if (att->bar.value == "ptr")
+            {
+                att->setType(std::get<SliceType>(att->foo->t->data).element);
+            }
+            else if (att->bar.value == "len")
+            {
+                att->setType(type_u64);
+            }
+            else
+            {
+                error("Slice has no attribute " + att->bar.value);
+            }
+        }
         else if (att->foo->t->kind == TypeKind::REGION)
         {
             // Ignore, handled earlier
