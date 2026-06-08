@@ -902,6 +902,10 @@ void TypeChecker::close(ASTNode* node)
         }
         else if (slice->arr->t->kind == TypeKind::POINTER)
         {
+            if (!slice->to)
+            {
+                error("Cannot infer upperbound on pointer");
+            }
             slice->setType(interner->getSlice(std::get<PtrType>(slice->arr->t->data).pointee));
         }
         else
