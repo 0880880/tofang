@@ -467,7 +467,7 @@ IRValue CallExpr::codegen(IRContext& ir)
             ir.allocations[std::get<RegionType>(region_expr->t->data).region]
                 .push_back(typed_ptr);
 
-            return typed_ptr;
+            return {typed_ptr, true};
         }
     }
     llvm::Value* l = nullptr;
@@ -495,7 +495,7 @@ IRValue CallExpr::codegen(IRContext& ir)
     }
 
     auto* f = llvm::dyn_cast<llvm::Function>(l);
-    return ir.builder.CreateCall(f, llvm_args);
+    return {ir.builder.CreateCall(f, llvm_args), true};
 }
 
 IRValue ArrayExpr::codegen(IRContext& ir)
