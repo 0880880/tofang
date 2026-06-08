@@ -383,7 +383,8 @@ Named<Expr*> Parser::prefix(Ptr& p)
 
     if (p.is("OP")) {
         Lexer::Token op = *p;
-        if (p.expectV("*", "-", "+", "!")) {
+        if (p.expectV("*", "-", "+", "!", "&"))
+        {
             return symbols->open(new UnaryExpr(op, postfix(p).get()));
         }
         error("Expected unary operator for unary expression");
