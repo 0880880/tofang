@@ -866,6 +866,10 @@ void TypeChecker::close(ASTNode* node)
         {
             idx->setType(std::get<ArrType>(idx->arr->t->data).element);
         }
+        else if (idx->arr->t->kind == TypeKind::SLICE)
+        {
+            idx->setType(std::get<SliceType>(idx->arr->t->data).element);
+        }
         else if (idx->arr->t->kind == TypeKind::POINTER)
         {
             idx->setType(std::get<PtrType>(idx->arr->t->data).pointee);
@@ -886,7 +890,26 @@ void TypeChecker::close(ASTNode* node)
             }
         }
     }
-    end:
+    else if (auto* slice = dynamic_cast<SliceExpr*>(node))
+    {
+        if (slice->arr->t->kind == TypeKind::ARRAY)
+        {
+            slice->setType(interner->getSlice(std::get<ArrType>(slice->arr->t->data).element));
+        }
+        else if (slice->arr->t->kind == TypeKind::SLICE)
+        {
+            slice->setType(interner->getSlice(std::get<SliceType>(slice->arr->t->data).element));
+        }
+        else if (slice->arr->t->kind == TypeKind::POINTER)
+        {
+            slice->setType(interner->getSlice(std::get<PtrType>(slice->arr->t->data).pointee));
+        }
+        else
+        {
+            error("Cannot index unexpected type " + slice->arr->t->toString());
+        }
+    }
+end:
     if (auto* expr = dynamic_cast<Expr*>(node))
     {
         if (const auto path = getAccessPath(expr))
