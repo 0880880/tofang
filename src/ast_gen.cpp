@@ -884,7 +884,7 @@ IRValue StructInitExpr::codegen(IRContext& ir)
             }
         }
     }
-    llvm::Value* ret = ptr;
+    llvm::Value* ret = ptr; // FIXME this case should only be possible with &Struct{...}
     if (ir.unpack_stored)
     {
         ret = ir.builder.CreateLoad(ddata.llvm, ptr, "loaded_obj");
@@ -908,9 +908,9 @@ IRValue StructInitExpr::codegen(IRContext& ir)
             obj_ptr
         );
 
-        return struct_alloca;
+        return {struct_alloca, true};
     }
-    return ret;
+    return {ret, true};
 }
 
 IRValue ElseStmt::codegen(IRContext& /*ir*/) { return nullptr; }
