@@ -711,13 +711,17 @@ IRValue AssignStmt::codegen(IRContext& ir)
 
 IRValue AssignExpr::codegen(IRContext& ir)
 {
-    llvm::Value* lhs = left->codegen(ir);
-    assert(lhs != nullptr);
+    const IRValue lhs = left->codegen(ir);
+    if (lhs.is_rv)
+    {
+        throw std::runtime_error("LHS of assignment cannot be an rvalue.");
+    }
+    assert(lhs.value != nullptr);
     {
         IRCOptions _(ir);
         _.unpackStored();
         _.withType(left->t);
-        ir.builder.CreateStore(right->codegen(ir), lhs);
+        ir.builder.CreateStore(right->codegen(ir), lhs.value);
     }
     return lhs;
 }
