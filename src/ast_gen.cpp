@@ -385,6 +385,18 @@ IRValue AttribExpr::codegen(IRContext& ir)
         lhs = ir.builder.CreateExtractValue(lhs, {1}, "nullable_obj");
         base_ty = std::get<NullableType>(base_ty->data).base;
     }
+    if (base_ty->kind == TypeKind::SLICE)
+    {
+        if (bar.value == "ptr")
+        {
+            return {ir.builder.CreateExtractValue(lhs, {0}, "slice.ptr"), true};
+        }
+        if (bar.value == "len")
+        {
+            return {ir.builder.CreateExtractValue(lhs, {1}, "slice.len"), true};
+        }
+        throw std::runtime_error("Unreachable");
+    }
     if (base_ty->kind == TypeKind::STRUCT)
     {
         const auto* decl = std::get<StructType>(base_ty->data).decl;
