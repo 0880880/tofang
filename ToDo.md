@@ -24,9 +24,10 @@
 - ~Control characters~
 - ~Slices [..] -> arr[a..b] and ptr[a..b]~
 - ~References~
-- read-only slice.ptr and slice.len
-- Remove pointer indexing / error
+- ~read-only slice.ptr and slice.len~
+- ~Remove pointer indexing / error~
 - Tidy
+- Check territory system
 - Standard library
 - Variadic functions
 - FMT library
