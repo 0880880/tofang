@@ -27,7 +27,7 @@
 - ~read-only slice.ptr and slice.len~
 - ~Remove pointer indexing / error~
 - ~Tidy~
-- Check territory system
+- ~Check territory system~
 - Standard library
 - Variadic functions
 - FMT library
