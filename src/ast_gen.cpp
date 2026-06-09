@@ -50,6 +50,10 @@ static llvm::Value* cast(const IRContext& ir, llvm::Value* val, TypeThing* from,
         }
         return ir.builder.CreateZExt(val, to->getLLVM(ir)); // FIXME idk
     }
+    if (from->kind == TypeKind::ARRAY && to->kind == TypeKind::POINTER)
+    {
+        return ir.builder.CreateGEP(from->getLLVM(ir), val, {0}, "arr_ptr");
+    }
     throw std::runtime_error("Unhandled type: " + from->toString() + " -> " + to->toString());
 }
 
