@@ -584,17 +584,16 @@ IRValue IndexExpr::codegen(IRContext& ir)
         }
         return ep;
     }
-    // TODO remove this
-    // else if (arr_ty->kind == TypeKind::POINTER)
-    // {
-    //     auto* ep = ir.builder.CreateGEP(std::get<PtrType>(arr_ty->data).pointee->getLLVM(ir), ptr,
-    //                                     {i->codegen(ir)}, "index_ptr");
-    //     if (ir.unpack_stored)
-    //     {
-    //         return ir.builder.CreateLoad(std::get<PtrType>(arr_ty->data).pointee->getLLVM(ir), ep, "load_ptr_index");
-    //     }
-    //     return ep;
-    // }
+    else if (arr_ty->kind == TypeKind::POINTER)
+    {
+        auto* ep = ir.builder.CreateGEP(std::get<PtrType>(arr_ty->data).pointee->getLLVM(ir), ptr,
+                                        {i->codegen(ir)}, "index_ptr");
+        if (ir.unpack_stored)
+        {
+            return ir.builder.CreateLoad(std::get<PtrType>(arr_ty->data).pointee->getLLVM(ir), ep, "load_ptr_index");
+        }
+        return ep;
+    }
     throw runtime_error("What this can't be!!  " + arr_ty->toString());
 }
 

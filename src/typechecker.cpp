@@ -895,7 +895,7 @@ void TypeChecker::close(ASTNode* node)
         }
         else if (idx->arr->t->kind == TypeKind::POINTER)
         {
-            error("Cannot index pointer: unsafe");
+            idx->setType(std::get<PtrType>(idx->arr->t->data).pointee);
         }
         else
         {
