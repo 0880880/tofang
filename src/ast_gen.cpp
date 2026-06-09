@@ -52,7 +52,8 @@ static llvm::Value* cast(const IRContext& ir, llvm::Value* val, TypeThing* from,
     }
     if (from->kind == TypeKind::ARRAY && to->kind == TypeKind::POINTER)
     {
-        return ir.builder.CreateGEP(from->getLLVM(ir), val, {0}, "arr_ptr");
+        return ir.builder.CreateGEP(from->getLLVM(ir), val, {ir.builder.getInt64(0), ir.builder.getInt64(0)},
+                                    "arr_ptr");
     }
     throw std::runtime_error("Unhandled type: " + from->toString() + " -> " + to->toString());
 }
@@ -385,9 +386,10 @@ IRValue VariableExpr::codegen(IRContext& ir)
         }
     }
 
-    if (ir.unpack_stored)
+    llvm::Type* llvm_ty = decl->toType()->getLLVM(ir);
+    if (ir.unpack_stored && !llvm_ty->isArrayTy())
     {
-        return ir.builder.CreateLoad(decl->toType()->getLLVM(ir), decl->alloca);
+        return ir.builder.CreateLoad(llvm_ty, decl->alloca);
     }
     return decl->alloca;
 }
@@ -542,13 +544,17 @@ IRValue ArrayExpr::codegen(IRContext& ir)
         return llvm::ConstantInt::get(i32t, i);
     };
 
-    llvm::AllocaInst* arr_alloca = ir.builder.CreateAlloca(llvm_arr_type, idx(elements.size()), "arr_init");
+    llvm::AllocaInst* arr_alloca = ir.builder.CreateAlloca(llvm_arr_type, idx(1), "arr_init");
+
+    auto* elem_type = std::get<ArrType>(arr_type->data).element;
 
     for (size_t i = 0; i < elements.size(); ++i)
     {
         llvm::Value* ptr = ir.builder.CreateGEP(llvm_arr_type, arr_alloca, {llvm::ConstantInt::get(i32t, 0), idx(i)},
                                                 "arr_init.ptr");
-        ir.builder.CreateStore(elements[i]->codegen(ir), ptr);
+        llvm::Value* raw_val = elements[i]->codegen(ir);
+        llvm::Value* casted_val = cast(ir, raw_val, elements[i]->t, elem_type);
+        ir.builder.CreateStore(casted_val, ptr);
     }
 
     return arr_alloca;
@@ -560,7 +566,14 @@ IRValue IndexExpr::codegen(IRContext& ir)
     llvm::Value* ptr = nullptr;
     {
         IRCOptions _(ir);
-        _.unpackStored();
+        if (arr_ty->kind == TypeKind::ARRAY)
+        {
+            _.packStored();
+        }
+        else
+        {
+            _.unpackStored();
+        }
         ptr = arr->codegen(ir);
     }
     if (arr_ty->kind == TypeKind::NULLABLE)
@@ -570,7 +583,8 @@ IRValue IndexExpr::codegen(IRContext& ir)
     }
     if (arr_ty->kind == TypeKind::ARRAY)
     {
-        auto* ep = ir.builder.CreateGEP(arr_ty->getLLVM(ir), ptr, {0, i->codegen(ir)}, "index_arr");
+        auto* ep = ir.builder.CreateGEP(arr_ty->getLLVM(ir), ptr, {ir.builder.getInt64(0), i->codegen(ir)},
+                                        "index_arr");
         if (ir.unpack_stored)
         {
             return ir.builder.CreateLoad(std::get<ArrType>(arr_ty->data).element->getLLVM(ir), ep, "load_arr_index");
@@ -584,7 +598,7 @@ IRValue IndexExpr::codegen(IRContext& ir)
                                         {i->codegen(ir)}, "index_ptr");
         if (ir.unpack_stored)
         {
-            return ir.builder.CreateLoad(std::get<ArrType>(arr_ty->data).element->getLLVM(ir), ep, "load_arr_index");
+            return ir.builder.CreateLoad(std::get<SliceType>(arr_ty->data).element->getLLVM(ir), ep, "load_arr_index");
         }
         return ep;
     }
@@ -660,7 +674,7 @@ IRValue SliceExpr::codegen(IRContext& ir)
     llvm::Value* ep;
     if (arr_ty->kind == TypeKind::ARRAY)
     {
-        ep = ir.builder.CreateGEP(arr_ty->getLLVM(ir), ptr, {from_code}, "index_arr");
+        ep = ir.builder.CreateGEP(arr_ty->getLLVM(ir), ptr, {0, from_code}, "index_arr");
     }
     else if (arr_ty->kind == TypeKind::SLICE)
     {
@@ -719,6 +733,18 @@ IRValue SliceExpr::codegen(IRContext& ir)
 IRValue AssignStmt::codegen(IRContext& ir)
 {
     llvm::AllocaInst* x = ir.fn_entry->CreateAlloca(type->getLLVM(ir), nullptr, name.value);
+    if (type->kind == TypeKind::ARRAY)
+    {
+        llvm::Value* val_ptr = nullptr;
+        {
+            IRCOptions _(ir);
+            _.packStored(); // Keep the array RHS packed as a pointer
+            val_ptr = value->codegen(ir);
+        }
+        uint64_t size = ir.mod.getDataLayout().getTypeAllocSize(type->getLLVM(ir));
+        ir.builder.CreateMemCpy(x, llvm::MaybeAlign(), val_ptr, llvm::MaybeAlign(), size);
+    }
+    else
     {
         IRCOptions _(ir);
         _.unpackStored();
@@ -738,6 +764,19 @@ IRValue AssignExpr::codegen(IRContext& ir)
         throw std::runtime_error("LHS of assignment cannot be an rvalue.");
     }
     assert(lhs.value != nullptr);
+
+    if (left->t->kind == TypeKind::ARRAY)
+    {
+        llvm::Value* rhs_ptr = nullptr;
+        {
+            IRCOptions _(ir);
+            _.packStored();
+            rhs_ptr = right->codegen(ir);
+        }
+        uint64_t size = ir.mod.getDataLayout().getTypeAllocSize(left->t->getLLVM(ir));
+        ir.builder.CreateMemCpy(lhs.value, llvm::MaybeAlign(), rhs_ptr, llvm::MaybeAlign(), size);
+    }
+    else
     {
         IRCOptions _(ir);
         _.unpackStored();

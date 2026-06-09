@@ -659,7 +659,7 @@ void TypeChecker::close(ASTNode* node)
         }
         else if (unary->op.value == "&")
         {
-            if (unary->right->t->kind != TypeKind::I_NULL)
+            if (unary->right->t->kind == TypeKind::I_NULL)
             {
                 error("Cannot reference null");
             }
@@ -912,6 +912,7 @@ void TypeChecker::close(ASTNode* node)
                 error("Array type inconsistency " + t->toString() + " != " + e->t->toString());
             }
         }
+        arr->setType(arr->arr_type);
     }
     else if (auto* slice = dynamic_cast<SliceExpr*>(node))
     {
