@@ -6,11 +6,7 @@
 #include "lexer.h"
 #include "type.h"
 #include <algorithm>
-#include <llvm/ADT/ArrayRef.h>
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Verifier.h>
-#include <llvm/Support/Casting.h>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -18,9 +14,11 @@
 
 using namespace std;
 
-class LiteralExpr : public Expr {
+class LiteralExpr : public Expr
+{
 public:
-    enum Type : uint8_t {
+    enum Type : uint8_t
+    {
         Null,
         Integer,
         Decimal,
@@ -37,7 +35,7 @@ public:
 
     LiteralExpr(Type type, Lexer::Token value)
         : type(type)
-        , value(std::move(value))
+          , value(std::move(value))
     {
     }
 
@@ -46,15 +44,24 @@ public:
     string toString() override
     {
         string type_string = "integer";
-        if (type == Type::Decimal) {
+        if (type == Type::Decimal)
+        {
             type_string = "decimal";
-        } else if (type == Type::Boolean) {
+        }
+        else if (type == Type::Boolean)
+        {
             type_string = "boolean";
-        } else if (type == Type::Char) {
+        }
+        else if (type == Type::Char)
+        {
             type_string = "char";
-        } else if (type == Type::String) {
+        }
+        else if (type == Type::String)
+        {
             type_string = "string";
-        } else if (type == Type::MetaType) {
+        }
+        else if (type == Type::MetaType)
+        {
             return "LiteralExpr<meta:" + typeValue->toString() + ">";
         }
         return "LiteralExpr<" + type_string + ":" + value.value + ">";
@@ -63,12 +70,13 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class ArrayExpr : public Expr {
+class ArrayExpr : public Expr
+{
 public:
-    TypeThing* arr_type;
+    TypeThing* arr_type{};
     std::vector<Expr*> elements;
 
-    ArrayExpr() { }
+    ArrayExpr() = default;
 
     std::vector<ASTNode*> walk() override
     {
@@ -78,12 +86,16 @@ public:
         return items;
     }
 
-    string toString() override { return "ArrayExpr<" + arr_type->toString() + ">[" + std::to_string(elements.size()) + "]"; }
+    string toString() override
+    {
+        return "ArrayExpr<" + arr_type->toString() + ">[" + std::to_string(elements.size()) + "]";
+    }
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class BinaryExpr : public Expr {
+class BinaryExpr : public Expr
+{
 public:
     Expr* left = nullptr;
     Lexer::Token op;
@@ -91,37 +103,39 @@ public:
 
     BinaryExpr(Expr* left, Lexer::Token op, Expr* right)
         : left(left)
-        , op(std::move(op))
-        , right(right)
+          , op(std::move(op))
+          , right(right)
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { left, right }; }
+    std::vector<ASTNode*> walk() override { return {left, right}; }
 
     string toString() override { return "BinaryExpr<" + op.value + ">"; }
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class UnaryExpr : public Expr {
+class UnaryExpr : public Expr
+{
 public:
     Lexer::Token op;
     Expr* right = nullptr;
 
     UnaryExpr(Lexer::Token op, Expr* right)
         : op(std::move(op))
-        , right(right)
+          , right(right)
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { right }; }
+    std::vector<ASTNode*> walk() override { return {right}; }
 
     string toString() override { return "UnaryExpr<" + op.value + ">"; }
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class GroupingExpr : public Expr {
+class GroupingExpr : public Expr
+{
 public:
     Expr* expression = nullptr;
 
@@ -130,14 +144,15 @@ public:
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { expression }; }
+    std::vector<ASTNode*> walk() override { return {expression}; }
 
     string toString() override { return "GroupingExpr"; }
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class VariableExpr : public Expr {
+class VariableExpr : public Expr
+{
 public:
     Lexer::Token name;
     Decl* decl = nullptr;
@@ -154,25 +169,27 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class AttribExpr : public Expr {
+class AttribExpr : public Expr
+{
 public:
     Expr* foo = nullptr;
     Lexer::Token bar;
 
     AttribExpr(Expr* foo, Lexer::Token bar)
         : foo(foo)
-        , bar(std::move(bar))
+          , bar(std::move(bar))
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { foo }; }
+    std::vector<ASTNode*> walk() override { return {foo}; }
 
     string toString() override { return "AttribExpr<" + bar.value + ">"; }
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class CallExpr : public Expr {
+class CallExpr : public Expr
+{
 public:
     Expr* func = nullptr;
     vector<Expr*> typeArgs;
@@ -194,9 +211,11 @@ public:
 
     string toString() override
     {
-        string buf = "";
-        for (size_t i = 0; i < typeArgs.size(); i++) {
-            if (typeArgs.size() - 1 - i) {
+        string buf;
+        for (size_t i = 0; i < typeArgs.size(); i++)
+        {
+            if (typeArgs.size() - 1 - i)
+            {
                 buf += ", ";
             }
             buf += typeArgs[i]->toString();
@@ -207,18 +226,19 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class IndexExpr : public Expr {
+class IndexExpr : public Expr
+{
 public:
     Expr* arr = nullptr;
     Expr* i = nullptr;
 
     IndexExpr(Expr* arr, Expr* i)
         : arr(arr)
-        , i(i)
+          , i(i)
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { arr, i }; }
+    std::vector<ASTNode*> walk() override { return {arr, i}; }
 
     string toString() override { return "IndexExpr"; }
 
@@ -232,7 +252,7 @@ public:
     std::optional<Expr*> from = nullptr;
     std::optional<Expr*> to = nullptr;
 
-    SliceExpr(Expr* arr, std::optional<Expr*> from, std::optional<Expr*> to)
+    SliceExpr(Expr* arr, const std::optional<Expr*> from, const std::optional<Expr*> to)
         : arr(arr)
           , from(from)
           , to(to)
@@ -258,25 +278,27 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class UpdateExpr : public Expr {
+class UpdateExpr : public Expr
+{
 public:
     Expr* obj = nullptr;
     Expr* value = nullptr;
 
     UpdateExpr(Expr* obj, Expr* value)
         : obj(obj)
-        , value(value)
+          , value(value)
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { obj, value }; }
+    std::vector<ASTNode*> walk() override { return {obj, value}; }
 
     string toString() override { return "UpdateExpr"; }
 
     IRValue codegen(IRContext& ir) override { throw std::runtime_error("Not implemented"); } // TODO
 };
 
-class AssignStmt : public Stmt {
+class AssignStmt : public Stmt
+{
 public:
     TypeThing* type = nullptr;
     Lexer::Token name;
@@ -286,13 +308,13 @@ public:
 
     AssignStmt(TypeThing* type, Lexer::Token name, Expr* value, Visibility visibility)
         : type(type)
-        , name(std::move(name))
-        , visibility(visibility)
-        , value(value)
+          , name(std::move(name))
+          , visibility(visibility)
+          , value(value)
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { value }; }
+    std::vector<ASTNode*> walk() override { return {value}; }
 
     string toString() override
     {
@@ -302,7 +324,8 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class AssignExpr : public Expr {
+class AssignExpr : public Expr
+{
 public:
     Expr* left = nullptr;
     Lexer::Token op;
@@ -311,12 +334,12 @@ public:
 
     AssignExpr(Expr* left, Lexer::Token op, Expr* right)
         : left(left)
-        , op(std::move(op))
-        , right(right)
+          , op(std::move(op))
+          , right(right)
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { left, right }; }
+    std::vector<ASTNode*> walk() override { return {left, right}; }
 
     string toString() override
     {
@@ -326,7 +349,8 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class ExprStmt : public Stmt {
+class ExprStmt : public Stmt
+{
 public:
     Expr* expression = nullptr;
 
@@ -335,14 +359,15 @@ public:
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { expression }; }
+    std::vector<ASTNode*> walk() override { return {expression}; }
 
     string toString() override { return "ExprStmt"; }
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class BlockStmt : public Stmt {
+class BlockStmt : public Stmt
+{
 public:
     vector<Stmt*> statements;
 
@@ -355,19 +380,20 @@ public:
         result.reserve(statements.size());
 
         std::ranges::transform(statements, std::back_inserter(result),
-            [](Stmt* s) { return static_cast<ASTNode*>(s); });
+                               [](Stmt* s) { return static_cast<ASTNode*>(s); });
 
         return result;
     }
 
     string toString() override { return "BlockStmt"; }
 
-    void finalize(IRContext& ir);
+    void finalize(IRContext& ir) const;
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class FuncStmt : public Stmt {
+class FuncStmt : public Stmt
+{
 public:
     TypeThing* returnType = nullptr;
     Lexer::Token name;
@@ -382,18 +408,20 @@ public:
 
     FuncStmt(TypeThing* returnType, Lexer::Token name, Visibility visibility)
         : returnType(returnType)
-        , name(std::move(name))
-        , visibility(visibility)
+          , name(std::move(name))
+          , visibility(visibility)
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { &body }; }
+    std::vector<ASTNode*> walk() override { return {&body}; }
 
     string toString() override
     {
-        string buf = "";
-        for (size_t i = 0; i < genericParams.size(); i++) {
-            if (genericParams.size() - 1 - i) {
+        string buf;
+        for (size_t i = 0; i < genericParams.size(); i++)
+        {
+            if (genericParams.size() - 1 - i)
+            {
                 buf += ", ";
             }
             buf += genericParams[i]->toString();
@@ -404,18 +432,20 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class ReturnStmt : public Stmt {
+class ReturnStmt : public Stmt
+{
 public:
     Expr* value = nullptr;
 
-    std::vector<ASTNode*> walk() override { return { value }; }
+    std::vector<ASTNode*> walk() override { return {value}; }
 
     string toString() override { return "ReturnStmt"; }
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class StructStmt : public Stmt {
+class StructStmt : public Stmt
+{
 public:
     Lexer::Token name;
     Visibility visibility;
@@ -429,7 +459,7 @@ public:
 
     StructStmt(Lexer::Token name, Visibility visibility)
         : name(std::move(name))
-        , visibility(visibility)
+          , visibility(visibility)
     {
     }
 
@@ -437,10 +467,12 @@ public:
     {
         vector<ASTNode*> v;
         v.reserve(definitions.size());
-        for (Expr* e : definitions) {
+        for (Expr* e : definitions)
+        {
             v.push_back(e);
         }
-        for (Stmt* s : functions) {
+        for (Stmt* s : functions)
+        {
             v.push_back(s);
         }
         return v;
@@ -448,8 +480,9 @@ public:
 
     string toString() override
     {
-        std::string defs = "";
-        for (size_t i = 0; i < types.size(); ++i) {
+        std::string defs;
+        for (size_t i = 0; i < types.size(); ++i)
+        {
             defs += types[i]->toString();
             defs += " ";
             defs += names[i].value;
@@ -463,7 +496,8 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class StructInitExpr : public Expr {
+class StructInitExpr : public Expr
+{
 public:
     TypeThing* struct_type;
     std::vector<Lexer::Token> names;
@@ -473,7 +507,8 @@ public:
     {
         vector<ASTNode*> v;
         v.reserve(values.size());
-        for (Expr* e : values) {
+        for (Expr* e : values)
+        {
             v.push_back(e);
         }
         return v;
@@ -481,8 +516,9 @@ public:
 
     string toString() override
     {
-        std::string defs = "";
-        for (size_t i = 0; i < names.size(); ++i) {
+        std::string defs;
+        for (size_t i = 0; i < names.size(); ++i)
+        {
             defs += names[i].value;
             defs += " = ";
             defs += values[i]->toString();
@@ -496,19 +532,21 @@ public:
 
 class IfStmt;
 
-class ElseStmt : public Stmt {
+class ElseStmt : public Stmt
+{
 public:
     IfStmt* ifStmt = nullptr;
     BlockStmt body;
 
-    std::vector<ASTNode*> walk() override { return { &body }; }
+    std::vector<ASTNode*> walk() override { return {&body}; }
 
     string toString() override { return "ElseStmt"; }
 
     IRValue codegen(IRContext& ir) override;
 };
 
-class IfStmt : public Stmt {
+class IfStmt : public Stmt
+{
 public:
     Expr* condition = nullptr;
     BlockStmt body;
@@ -517,11 +555,13 @@ public:
 
     std::vector<ASTNode*> walk() override
     {
-        std::vector<ASTNode*> v = { condition, &body };
-        if (elseIf) {
+        std::vector<ASTNode*> v = {condition, &body};
+        if (elseIf)
+        {
             v.push_back(elseIf);
         }
-        if (elseStmt) {
+        if (elseStmt)
+        {
             v.push_back(elseStmt);
         }
         return v;
@@ -532,7 +572,8 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class ForStmt : public Stmt {
+class ForStmt : public Stmt
+{
 public:
     Stmt* init = nullptr;
     Expr* condition = nullptr;
@@ -541,7 +582,7 @@ public:
 
     std::vector<ASTNode*> walk() override
     {
-        return { init, condition, update, &body };
+        return {init, condition, update, &body};
     }
 
     string toString() override { return "ForStmt"; }
@@ -549,8 +590,8 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class RegionStmt : public Stmt {
-
+class RegionStmt : public Stmt
+{
 public:
     Lexer::Token name;
     BlockStmt body;
@@ -561,7 +602,7 @@ public:
     {
     }
 
-    std::vector<ASTNode*> walk() override { return { &body }; }
+    std::vector<ASTNode*> walk() override { return {&body}; }
 
     string toString() override { return "RegionStmt<" + name.value + ">"; }
 
@@ -570,7 +611,8 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class ImportStmt : public Stmt {
+class ImportStmt : public Stmt
+{
 public:
     std::vector<std::string> path;
 
@@ -581,7 +623,8 @@ public:
     IRValue codegen(IRContext& ir) override;
 };
 
-class Program : public Stmt {
+class Program : public Stmt
+{
 public:
     vector<Stmt*> statements;
 
@@ -591,7 +634,7 @@ public:
         result.reserve(statements.size());
 
         std::ranges::transform(statements, std::back_inserter(result),
-            [](Stmt* s) { return static_cast<ASTNode*>(s); });
+                               [](Stmt* s) { return static_cast<ASTNode*>(s); });
 
         return result;
     }

@@ -57,13 +57,13 @@ IRValue wrapNullable(const IRContext& ir, llvm::Constant* value)
 {
     if (ir.infer_type != nullptr && ir.infer_type->kind == TypeKind::NULLABLE)
     {
-        auto *null_struct_type = llvm::dyn_cast<llvm::StructType>(ir.infer_type->getLLVM(ir));
+        auto* null_struct_type = llvm::dyn_cast<llvm::StructType>(ir.infer_type->getLLVM(ir));
         assert(null_struct_type != nullptr);
         llvm::Constant* constant_struct = llvm::ConstantStruct::get(null_struct_type, {
-                                                                       llvm::ConstantInt::get(
-                                                                           type_bool->getLLVM(ir), 1),
-                                                                       value
-                                                                   });
+                                                                        llvm::ConstantInt::get(
+                                                                            type_bool->getLLVM(ir), 1),
+                                                                        value
+                                                                    });
         return constant_struct;
     }
     return value;
@@ -73,7 +73,7 @@ IRValue LiteralExpr::codegen(IRContext& ir)
 {
     if (type == String)
     {
-        return wrapNullable(ir,ir.builder.CreateGlobalString(value.value, "str_global", 0, nullptr, false));
+        return wrapNullable(ir, ir.builder.CreateGlobalString(value.value, "str_global", 0, nullptr, false));
     }
     switch (t->kind)
     {
@@ -81,39 +81,39 @@ IRValue LiteralExpr::codegen(IRContext& ir)
     case TypeKind::I16:
     case TypeKind::I32:
     case TypeKind::I64:
-        return wrapNullable(ir,llvm::ConstantInt::get(t->getLLVM(ir), static_cast<uint64_t>(std::stol(value.value)),
-                                      true));
+        return wrapNullable(ir, llvm::ConstantInt::get(t->getLLVM(ir), static_cast<uint64_t>(std::stol(value.value)),
+                                                       true));
     case TypeKind::U8:
     case TypeKind::U16:
     case TypeKind::U32:
     case TypeKind::U64:
-        return wrapNullable(ir,llvm::ConstantInt::get(t->getLLVM(ir), static_cast<uint64_t>(std::stol(value.value)),
-                                      false));
+        return wrapNullable(ir, llvm::ConstantInt::get(t->getLLVM(ir), static_cast<uint64_t>(std::stol(value.value)),
+                                                       false));
     case TypeKind::F32:
     case TypeKind::F64:
-        return wrapNullable(ir,llvm::ConstantFP::get(t->getLLVM(ir), std::stod(value.value)));
+        return wrapNullable(ir, llvm::ConstantFP::get(t->getLLVM(ir), std::stod(value.value)));
     case TypeKind::UNTYPED_INT:
-        return wrapNullable(ir,llvm::ConstantInt::get(ir.builder.getInt64Ty(),
-                                      static_cast<uint64_t>(std::stol(value.value))));
+        return wrapNullable(ir, llvm::ConstantInt::get(ir.builder.getInt64Ty(),
+                                                       static_cast<uint64_t>(std::stol(value.value))));
     case TypeKind::UNTYPED_FLOAT:
-        return wrapNullable(ir,llvm::ConstantFP::get(ir.builder.getDoubleTy(),
-                                     std::stod(value.value)));
+        return wrapNullable(ir, llvm::ConstantFP::get(ir.builder.getDoubleTy(),
+                                                      std::stod(value.value)));
     case TypeKind::BOOL:
-        return wrapNullable(ir,value.value == "true"
-                   ? llvm::ConstantInt::getTrue(ir.ctx)
-                   : llvm::ConstantInt::getFalse(ir.ctx));
+        return wrapNullable(ir, value.value == "true"
+                                    ? llvm::ConstantInt::getTrue(ir.ctx)
+                                    : llvm::ConstantInt::getFalse(ir.ctx));
     case TypeKind::I_NULL:
         assert(ir.infer_type != nullptr);
         assert(ir.infer_type->kind == TypeKind::NULLABLE);
-        auto *null_struct_type = llvm::dyn_cast<llvm::StructType>(ir.infer_type->getLLVM(ir));
+        auto* null_struct_type = llvm::dyn_cast<llvm::StructType>(ir.infer_type->getLLVM(ir));
         assert(null_struct_type != nullptr);
         llvm::Constant* constant_struct = llvm::ConstantStruct::get(null_struct_type, {
-                                                                       llvm::ConstantInt::get(
-                                                                           type_bool->getLLVM(ir), 0),
-                                                                       llvm::UndefValue::get(
-                                                                           std::get<NullableType>(ir.infer_type->data).
-                                                                           base->getLLVM(ir))
-                                                                   });
+                                                                        llvm::ConstantInt::get(
+                                                                            type_bool->getLLVM(ir), 0),
+                                                                        llvm::UndefValue::get(
+                                                                            std::get<NullableType>(ir.infer_type->data).
+                                                                            base->getLLVM(ir))
+                                                                    });
         return constant_struct;
     }
     return nullptr;
@@ -121,9 +121,9 @@ IRValue LiteralExpr::codegen(IRContext& ir)
 
 IRValue BinaryExpr::codegen(IRContext& ir)
 {
-    string v = op.value;
-    auto lhs = cast(ir, left->codegen(ir), left->t, t);
-    auto rhs = cast(ir, right->codegen(ir), right->t, t);
+    const string v = op.value;
+    const auto lhs = cast(ir, left->codegen(ir), left->t, t);
+    const auto rhs = cast(ir, right->codegen(ir), right->t, t);
     if (v == "+")
     {
         if (isFloat(t))
@@ -168,20 +168,22 @@ IRValue BinaryExpr::codegen(IRContext& ir)
             return {
                 isSigned(t)
                     ? ir.builder.CreateSDiv(lhs, rhs, "signed_div")
-                    : ir.builder.CreateUDiv(lhs, rhs, "unsigned_div"),true};
+                    : ir.builder.CreateUDiv(lhs, rhs, "unsigned_div"),
+                true
+            };
         }
     }
     else if (v == "&" || v == "&&")
     {
-        return {ir.builder.CreateAnd(lhs, rhs, "and"),true};
+        return {ir.builder.CreateAnd(lhs, rhs, "and"), true};
     }
     else if (v == "|" || v == "||")
     {
-        return {ir.builder.CreateOr(lhs, rhs, "or"),true};
+        return {ir.builder.CreateOr(lhs, rhs, "or"), true};
     }
     else if (v == "^")
     {
-        return {ir.builder.CreateXor(lhs, rhs, "xor"),true};
+        return {ir.builder.CreateXor(lhs, rhs, "xor"), true};
     }
     else if (v == "==")
     {
@@ -189,13 +191,17 @@ IRValue BinaryExpr::codegen(IRContext& ir)
         {
             return {
                 ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OEQ, lhs,
-                                      rhs, "fcmp_eq"),true};
+                                      rhs, "fcmp_eq"),
+                true
+            };
         }
         else
         {
             return {
                 ir.builder.CreateICmp(llvm::CmpInst::Predicate::ICMP_EQ, lhs,
-                                      rhs, "icmp_eq"),true};
+                                      rhs, "icmp_eq"),
+                true
+            };
         }
     }
     else if (v == "!=")
@@ -223,14 +229,17 @@ IRValue BinaryExpr::codegen(IRContext& ir)
         {
             return {
                 ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OGT, lhs,
-                                      rhs, "fcmp_gt"),true};
+                                      rhs, "fcmp_gt"),
+                true
+            };
         }
         else
         {
-            return {ir.builder.CreateICmp(isSigned(t)
-                                              ? llvm::CmpInst::Predicate::ICMP_SGT
-                                              : llvm::CmpInst::Predicate::ICMP_UGT,
-                                          lhs, rhs, "icmp_gt"),
+            return {
+                ir.builder.CreateICmp(isSigned(t)
+                                          ? llvm::CmpInst::Predicate::ICMP_SGT
+                                          : llvm::CmpInst::Predicate::ICMP_UGT,
+                                      lhs, rhs, "icmp_gt"),
                 true
             };
         }
@@ -241,14 +250,17 @@ IRValue BinaryExpr::codegen(IRContext& ir)
         {
             return {
                 ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OLT, lhs,
-                                      rhs, "fcmp_lt"),true};
+                                      rhs, "fcmp_lt"),
+                true
+            };
         }
         else
         {
-            return {ir.builder.CreateICmp(isSigned(t)
-                                              ? llvm::CmpInst::Predicate::ICMP_SLT
-                                              : llvm::CmpInst::Predicate::ICMP_ULT,
-                                          lhs, rhs, "icmp_lt"),
+            return {
+                ir.builder.CreateICmp(isSigned(t)
+                                          ? llvm::CmpInst::Predicate::ICMP_SLT
+                                          : llvm::CmpInst::Predicate::ICMP_ULT,
+                                      lhs, rhs, "icmp_lt"),
                 true
             };
         }
@@ -259,7 +271,9 @@ IRValue BinaryExpr::codegen(IRContext& ir)
         {
             return {
                 ir.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_OGE, lhs,
-                                      rhs, "fcmp_ge"),true};
+                                      rhs, "fcmp_ge"),
+                true
+            };
         }
         else
         {
@@ -267,7 +281,9 @@ IRValue BinaryExpr::codegen(IRContext& ir)
                 ir.builder.CreateICmp(isSigned(t)
                                           ? llvm::CmpInst::Predicate::ICMP_SGE
                                           : llvm::CmpInst::Predicate::ICMP_UGE,
-                                      lhs, rhs, "icmp_ge"),true};
+                                      lhs, rhs, "icmp_ge"),
+                true
+            };
         }
     }
     else if (v == "<=")
@@ -319,7 +335,8 @@ IRValue UnaryExpr::codegen(IRContext& ir)
         {
             return {
                 ir.builder.CreateFSub(llvm::ConstantFP::get(rhs.value->getType(), 0),
-                                      rhs.value),true
+                                      rhs.value),
+                true
             };
         }
     }
@@ -379,7 +396,7 @@ IRValue AttribExpr::codegen(IRContext& ir)
         _.packStored();
         lhs = foo->codegen(ir);
     }
-    auto *base_ty = foo->t;
+    auto* base_ty = foo->t;
     if (base_ty->kind == TypeKind::NULLABLE)
     {
         lhs = ir.builder.CreateExtractValue(lhs, {1}, "nullable_obj");
@@ -401,7 +418,7 @@ IRValue AttribExpr::codegen(IRContext& ir)
     {
         const auto* decl = std::get<StructType>(base_ty->data).decl;
         const auto& ddata = std::get<StructDecl>(decl->data);
-        for (const auto & method : ddata.methods)
+        for (const auto& method : ddata.methods)
         {
             if (method->name.value == bar.value)
             {
@@ -501,7 +518,7 @@ IRValue CallExpr::codegen(IRContext& ir)
         const auto [params, return_type] = std::get<FuncType>(func->t->data);
         for (size_t i = 0; i < args.size(); ++i)
         {
-            Expr *a = args[i];
+            Expr* a = args[i];
             llvm_args.push_back(cast(ir, a->codegen(ir), a->t, params[i]));
         }
     }
@@ -535,8 +552,8 @@ IRValue ArrayExpr::codegen(IRContext& ir)
 
 IRValue IndexExpr::codegen(IRContext& ir)
 {
-    auto *arr_ty = arr->t;
-    llvm::Value *ptr = nullptr;
+    auto* arr_ty = arr->t;
+    llvm::Value* ptr = nullptr;
     {
         IRCOptions _(ir);
         _.unpackStored();
@@ -732,7 +749,7 @@ IRValue ExprStmt::codegen(IRContext& ir)
     return expression->codegen(ir);
 }
 
-void BlockStmt::finalize(IRContext& ir)
+void BlockStmt::finalize(IRContext& ir) const
 {
     for (auto& def : defer)
     {
@@ -908,12 +925,12 @@ IRValue StructInitExpr::codegen(IRContext& ir)
     }
     if (ir.infer_type->kind == TypeKind::NULLABLE)
     {
-        auto *ty = ir.infer_type->getLLVM(ir);
-        llvm::AllocaInst *struct_alloca =ir.builder.CreateAlloca(ty, nullptr, "nullable_wrapper");
+        auto* ty = ir.infer_type->getLLVM(ir);
+        llvm::AllocaInst* struct_alloca = ir.builder.CreateAlloca(ty, nullptr, "nullable_wrapper");
 
-        llvm::Value *not_null_ptr = ir.builder.CreateStructGEP(ty, struct_alloca, 0, "not_null.ptr");
+        llvm::Value* not_null_ptr = ir.builder.CreateStructGEP(ty, struct_alloca, 0, "not_null.ptr");
 
-        llvm::Value *obj_ptr = ir.builder.CreateStructGEP(ty, struct_alloca, 1, "obj.ptr");
+        llvm::Value* obj_ptr = ir.builder.CreateStructGEP(ty, struct_alloca, 1, "obj.ptr");
 
         ir.builder.CreateStore(
             llvm::ConstantInt::getBool(ir.ctx, true),
@@ -1086,7 +1103,7 @@ IRValue RegionStmt::codegen(IRContext& ir)
     return nullptr;
 }
 
-IRValue ImportStmt::codegen(IRContext&  /*ir*/)
+IRValue ImportStmt::codegen(IRContext& /*ir*/)
 {
     return nullptr;
 }

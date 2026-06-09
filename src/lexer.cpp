@@ -14,7 +14,7 @@ size_t getLine(const string& text, size_t pos)
 
 void Lexer::token(string re, string type)
 {
-    tokenTypes.push_back({ .pattern = std::move(re), .type = std::move(type) });
+    tokenTypes.push_back({.pattern = std::move(re), .type = std::move(type)});
 }
 
 vector<Lexer::Token> Lexer::tokenize(const string& source)
@@ -22,8 +22,10 @@ vector<Lexer::Token> Lexer::tokenize(const string& source)
     string pat;
     pat.reserve(30 * tokenTypes.size());
 
-    for (size_t i = 0; i < tokenTypes.size(); ++i) {
-        if (i) {
+    for (size_t i = 0; i < tokenTypes.size(); ++i)
+    {
+        if (i)
+        {
             pat.append("|");
         }
         pat.append("(");
@@ -41,16 +43,19 @@ vector<Lexer::Token> Lexer::tokenize(const string& source)
 
     vector<Lexer::Token> tokens;
 
-    for (std::sregex_iterator i = begin; i != end; ++i) {
+    for (std::sregex_iterator i = begin; i != end; ++i)
+    {
         const smatch& match = *i;
         auto sub = match.str(0);
-        for (size_t j = 1; j < match.size(); ++j) {
+        for (size_t j = 1; j < match.size(); ++j)
+        {
             auto g = match.str(j);
-            if (g != "") {
+            if (g != "")
+            {
                 auto m_start = static_cast<size_t>(match.position(0));
                 auto m_end = static_cast<size_t>(match.position(0)) + sub.length();
                 tokens.emplace_back(tokenTypes[j - 1].type, sub, m_start, m_end,
-                    getLine(source, m_start), getLine(source, m_end));
+                                    getLine(source, m_start), getLine(source, m_end));
                 break;
             }
         }

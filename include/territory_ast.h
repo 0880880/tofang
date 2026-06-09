@@ -1,7 +1,8 @@
 #pragma once
 
-struct Region {
-  Region *parent = nullptr;
+struct Region
+{
+    Region* parent = nullptr;
 
-  bool outlives(const Region *o) const;
+    bool outlives(const Region* o) const;
 };

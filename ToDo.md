@@ -26,7 +26,7 @@
 - ~References~
 - ~read-only slice.ptr and slice.len~
 - ~Remove pointer indexing / error~
-- Tidy
+- ~Tidy~
 - Check territory system
 - Standard library
 - Variadic functions
@@ -35,7 +35,7 @@
 - Type Check struct attribute
 - usize type
 - lifetime.start/end stack allocation hints
-- tidy: use std:: remove using namespace 
+- tidy: use std:: remove using namespace
 - revisit nullable type checking
 - visit nullable code gen
 - static functions
@@ -46,12 +46,13 @@
 - Public const variables
 - Fix struct field lifetime checks
 - While loop
-- ++ -- +=  -= *= /= operators
+- ++ -- += -= *= /= operators
 - Hex/Binary integer literals
 - Switch case
 - More ToDo
 
 ## unordered ToDo
+
 - Check for repeated function and struct fields/args
 - Require Public Main
 - Add debugging

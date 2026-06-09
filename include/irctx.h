@@ -8,7 +8,8 @@
 
 class BlockStmt;
 
-struct IRContext {
+struct IRContext
+{
     llvm::LLVMContext& ctx;
     llvm::IRBuilder<>& builder;
     llvm::Module& mod;
@@ -18,17 +19,18 @@ struct IRContext {
     std::deque<BlockStmt*> blocks = {};
     bool unpack_stored = false;
     llvm::Value* attrib_struct = nullptr;
-    TypeThing *infer_type = nullptr;
+    TypeThing* infer_type = nullptr;
 
     IRContext(llvm::LLVMContext& c, llvm::IRBuilder<>& b, llvm::Module& m)
         : ctx(c)
-        , builder(b)
-        , mod(m)
+          , builder(b)
+          , mod(m)
     {
     }
 };
 
-class IRCOptions {
+class IRCOptions
+{
 private:
     IRContext& ir;
     bool prev_unpack_stored;
@@ -37,25 +39,29 @@ private:
 public:
     IRCOptions(IRContext& ir)
         : ir(ir)
-        , prev_unpack_stored(ir.unpack_stored)
-        , prev_infer_type(ir.infer_type)
+          , prev_unpack_stored(ir.unpack_stored)
+          , prev_infer_type(ir.infer_type)
     {
     }
+
     IRCOptions& unpackStored()
     {
         ir.unpack_stored = true;
         return *this;
     }
+
     IRCOptions& packStored()
     {
         ir.unpack_stored = false;
         return *this;
     }
-    IRCOptions &withType(TypeThing *t)
+
+    IRCOptions& withType(TypeThing* t)
     {
         ir.infer_type = t;
         return *this;
     }
+
     ~IRCOptions()
     {
         ir.unpack_stored = prev_unpack_stored;

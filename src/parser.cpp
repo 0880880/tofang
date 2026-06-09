@@ -11,7 +11,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -20,25 +19,29 @@ using Ptr = Parser::Ptr;
 template <typename T>
 using Named = Parser::Named<T>;
 
-Decl* Symbols::search(const std::string& name, bool fail)
+Decl* Symbols::search(const std::string& name, const bool fail)
 {
-    for (auto& [_, map] : std::views::reverse(declarations)) {
+    for (auto& [_, map] : std::views::reverse(declarations))
+    {
         auto d = map.find(name);
-        if (d != map.end()) {
+        if (d != map.end())
+        {
             return d->second;
         }
     }
-    if (fail) {
-        throw std::runtime_error("Unkown symbol: " + name);
+    if (fail)
+    {
+        throw std::runtime_error("Unknown symbol: " + name);
     }
     return nullptr;
 }
 
 void Symbols::taken(const std::string& name)
 {
-    for (auto& [_, map] : std::views::reverse(declarations)) {
-        auto d = map.find(name);
-        if (d != map.end()) {
+    for (auto& [_, map] : std::views::reverse(declarations))
+    {
+        if (auto d = map.find(name); d != map.end())
+        {
             throw runtime_error("Name taken: " + name);
         }
     }
@@ -46,54 +49,90 @@ void Symbols::taken(const std::string& name)
 
 Parser::Parser() { symbols = std::make_unique<Symbols>(); }
 
-optional<TypeThing*> Parser::type(Ptr& p)
+optional<TypeThing*> Parser::type(Ptr& p) const
 {
     TypeThing* t;
-    if (p.is("PRIMITIVE")) {
-        if ((*p).value == "void") {
+    if (p.is("PRIMITIVE"))
+    {
+        if ((*p).value == "void")
+        {
             t = type_void;
-        } else if ((*p).value == "bool") {
+        }
+        else if ((*p).value == "bool")
+        {
             t = type_bool;
-        } else if ((*p).value == "u8") {
+        }
+        else if ((*p).value == "u8")
+        {
             t = type_u8;
-        } else if ((*p).value == "u16") {
+        }
+        else if ((*p).value == "u16")
+        {
             t = type_u16;
-        } else if ((*p).value == "u32") {
+        }
+        else if ((*p).value == "u32")
+        {
             t = type_u32;
-        } else if ((*p).value == "u64") {
+        }
+        else if ((*p).value == "u64")
+        {
             t = type_u64;
-        } else if ((*p).value == "i8") {
+        }
+        else if ((*p).value == "i8")
+        {
             t = type_i8;
-        } else if ((*p).value == "i16") {
+        }
+        else if ((*p).value == "i16")
+        {
             t = type_i16;
-        } else if ((*p).value == "i32") {
+        }
+        else if ((*p).value == "i32")
+        {
             t = type_i32;
-        } else if ((*p).value == "i64") {
+        }
+        else if ((*p).value == "i64")
+        {
             t = type_i64;
-        } else if ((*p).value == "f32") {
+        }
+        else if ((*p).value == "f32")
+        {
             t = type_f32;
-        } else if ((*p).value == "f64") {
+        }
+        else if ((*p).value == "f64")
+        {
             t = type_f64;
         }
-    } else if (p.is("IDENTIFIER")) {
+    }
+    else if (p.is("IDENTIFIER"))
+    {
         Decl* decl = symbols->search((*p).value, false);
-        if (decl != nullptr && decl->kind == DeclKind::STRUCT) {
+        if (decl != nullptr && decl->kind == DeclKind::STRUCT)
+        {
             t = interner->getStruct((*p).value);
             symbols->unresolved_types.push_back(t);
-        } else {
+        }
+        else
+        {
             return nullopt;
         }
-    } else {
+    }
+    else
+    {
         return nullopt;
     }
     ++p;
-    while (true) {
-        if (p.is("OP") && p.isV("*")) {
+    while (true)
+    {
+        if (p.is("OP") && p.isV("*"))
+        {
             ++p;
             t = interner->getPointer(t);
-        } else if (p.is("LBRACKET")) {
+        }
+        else if (p.is("LBRACKET"))
+        {
             ++p;
-            if (p.is("RBRACKET")) {
+            if (p.is("RBRACKET"))
+            {
                 ++p;
                 t = interner->getArray(t, -1);
             }
@@ -101,22 +140,30 @@ optional<TypeThing*> Parser::type(Ptr& p)
             {
                 ++p;
                 t = interner->getSlice(t);
-            } else {
+            }
+            else
+            {
                 int size = std::stoi((*p).value);
                 p.expect("INTEGER");
                 p.expect("RBRACKET");
-                if (size == 0) {
+                if (size == 0)
+                {
                     error("Array size cannot be zero.");
-                } else if (size < 0) {
+                }
+                else if (size < 0)
+                {
                     error("Array size cannot be negative.");
                 }
                 t = interner->getArray(t, size);
             }
-        } else {
+        }
+        else
+        {
             break;
         }
     }
-    if (p.is("QUESTION")) {
+    if (p.is("QUESTION"))
+    {
         ++p;
         t = interner->getNullable(t);
     }
@@ -128,31 +175,40 @@ int precedence(const std::string& op)
     // if (op == "=" || op == "+=" || op == "-=" || op == "*=" || op == "/=") {
     //   return 1;
     // }
-    if (op == "||") {
+    if (op == "||")
+    {
         return 2;
     }
-    if (op == "&&") {
+    if (op == "&&")
+    {
         return 3;
     }
-    if (op == "|") {
+    if (op == "|")
+    {
         return 4;
     }
-    if (op == "^") {
+    if (op == "^")
+    {
         return 5;
     }
-    if (op == "&") {
+    if (op == "&")
+    {
         return 6;
     }
-    if (op == "==" || op == "!=") {
+    if (op == "==" || op == "!=")
+    {
         return 7;
     }
-    if (op == "<" || op == "<=" || op == ">" || op == ">=") {
+    if (op == "<" || op == "<=" || op == ">" || op == ">=")
+    {
         return 8;
     }
-    if (op == "+" || op == "-") {
+    if (op == "+" || op == "-")
+    {
         return 9;
     }
-    if (op == "*" || op == "/") {
+    if (op == "*" || op == "/")
+    {
         return 10;
     }
     return -1;
@@ -160,48 +216,57 @@ int precedence(const std::string& op)
 
 Named<Expr*> Parser::primary(Ptr& p)
 {
-
-    if (p.eof()) {
+    if (p.eof())
+    {
         throw std::runtime_error("Unexpected EOF in primary()");
     }
 
-    if (auto ty = type(p)) {
+    if (auto ty = type(p))
+    {
         auto l = new LiteralExpr(LiteralExpr::Type::MetaType, *p);
         l->typeValue = *ty;
         return symbols->open(l);
     }
 
-    if (p.is("IDENTIFIER")) {
+    if (p.is("IDENTIFIER"))
+    {
         auto v = new VariableExpr(*p);
         ++p;
         return symbols->open(v);
     }
 
-    if (p.is("NULL")) {
+    if (p.is("NULL"))
+    {
         auto l = new LiteralExpr(LiteralExpr::Type::Null, *p);
         ++p;
         return symbols->open(l);
     }
-    if (p.is("INTEGER") || p.is("DECIMAL") || p.is("BOOLEAN") || p.is("CHAR") || p.is("STRING")) {
+    if (p.is("INTEGER") || p.is("DECIMAL") || p.is("BOOLEAN") || p.is("CHAR") || p.is("STRING"))
+    {
         auto l = new LiteralExpr(LiteralExpr::Type::Integer, *p);
-        if (p.is("DECIMAL")) {
+        if (p.is("DECIMAL"))
+        {
             l->type = LiteralExpr::Type::Decimal;
         }
-        if (p.is("BOOLEAN")) {
+        if (p.is("BOOLEAN"))
+        {
             l->type = LiteralExpr::Type::Boolean;
         }
-        if (p.is("CHAR")) {
+        if (p.is("CHAR"))
+        {
             l->type = LiteralExpr::Type::Char;
         }
-        if (p.is("STRING")) {
+        if (p.is("STRING"))
+        {
             l->type = LiteralExpr::Type::String;
             const auto init = new StructInitExpr();
             init->struct_type = interner->getStruct("String");
             symbols->unresolved_types.push_back(init->struct_type);
-            init->names.push_back(Lexer::Token { "IDENTIFIER", "data" });
-            init->names.push_back(Lexer::Token { "IDENTIFIER", "len" });
+            init->names.emplace_back("IDENTIFIER", "data");
+            init->names.emplace_back("IDENTIFIER", "len");
             init->values.push_back(l);
-            init->values.push_back(new LiteralExpr(LiteralExpr::Type::Integer, Lexer::Token { "INTEGER", to_string((*p).value.length()) }));
+            init->values.push_back(new LiteralExpr(LiteralExpr::Type::Integer,
+                                                   Lexer::Token{"INTEGER", to_string((*p).value.length())}));
             ++p;
             return symbols->open(init);
         }
@@ -210,7 +275,8 @@ Named<Expr*> Parser::primary(Ptr& p)
         return symbols->open(l);
     }
 
-    if (p.is("LPAREN")) {
+    if (p.is("LPAREN"))
+    {
         ++p;
         Expr* inner = expr(p).get();
         p.expect("RPAREN");
@@ -223,13 +289,17 @@ Named<Expr*> Parser::primary(Ptr& p)
 Named<Expr*> Parser::postfix(Ptr& p)
 {
     Expr* left = primary(p).get();
-    while (!p.eof()) {
-        if (p.is("DOT")) {
+    while (!p.eof())
+    {
+        if (p.is("DOT"))
+        {
             ++p;
             auto bar = *p;
             ++p;
             left = new AttribExpr(left, bar);
-        } else if (p.is("LBRACKET")) {
+        }
+        else if (p.is("LBRACKET"))
+        {
             ++p;
             if (p.is("RANGE"))
             {
@@ -271,15 +341,20 @@ Named<Expr*> Parser::postfix(Ptr& p)
                 left = ind;
             }
             p.expect("RBRACKET");
-        } else if (p.isV("<")) {
+        }
+        else if (p.isV("<"))
+        {
             ++p;
             auto c = new CallExpr(left);
             bool start = true;
-            while (start || p.is("COMMA")) {
-                if (p.isV(">")) {
+            while (start || p.is("COMMA"))
+            {
+                if (p.isV(">"))
+                {
                     break;
                 }
-                if (!start) {
+                if (!start)
+                {
                     p.expect("COMMA");
                 }
                 start = false;
@@ -292,11 +367,14 @@ Named<Expr*> Parser::postfix(Ptr& p)
             ++p;
             p.expect("LPAREN");
             start = true;
-            while (start || p.is("COMMA")) {
-                if (p.is("RPAREN")) {
+            while (start || p.is("COMMA"))
+            {
+                if (p.is("RPAREN"))
+                {
                     break;
                 }
-                if (!start) {
+                if (!start)
+                {
                     p.expect("COMMA");
                 }
                 start = false;
@@ -304,15 +382,20 @@ Named<Expr*> Parser::postfix(Ptr& p)
             }
             ++p;
             left = c;
-        } else if (p.is("LPAREN")) {
+        }
+        else if (p.is("LPAREN"))
+        {
             bool start = true;
             auto c = new CallExpr(left);
             ++p;
-            while (start || p.is("COMMA")) {
-                if (p.is("RPAREN")) {
+            while (start || p.is("COMMA"))
+            {
+                if (p.is("RPAREN"))
+                {
                     break;
                 }
-                if (!start) {
+                if (!start)
+                {
                     p.expect("COMMA");
                 }
                 start = false;
@@ -320,20 +403,29 @@ Named<Expr*> Parser::postfix(Ptr& p)
             }
             ++p;
             left = c;
-        } else if (p.is("LBRACE")) {
-            if (auto lit = dynamic_cast<LiteralExpr*>(left)) {
-                if (lit->type != LiteralExpr::Type::MetaType) {
+        }
+        else if (p.is("LBRACE"))
+        {
+            if (auto lit = dynamic_cast<LiteralExpr*>(left))
+            {
+                if (lit->type != LiteralExpr::Type::MetaType)
+                {
                     throw runtime_error("Initializer LHS must be a type.");
-                } else if (lit->typeValue->kind == TypeKind::STRUCT) {
+                }
+                else if (lit->typeValue->kind == TypeKind::STRUCT)
+                {
                     auto in = new StructInitExpr();
                     in->struct_type = lit->typeValue;
                     bool start = true;
                     ++p;
-                    while (start || p.is("COMMA")) {
-                        if (p.is("RBRACE")) {
+                    while (start || p.is("COMMA"))
+                    {
+                        if (p.is("RBRACE"))
+                        {
                             break;
                         }
-                        if (!start) {
+                        if (!start)
+                        {
                             p.expect("COMMA");
                         }
                         start = false;
@@ -344,16 +436,21 @@ Named<Expr*> Parser::postfix(Ptr& p)
                     }
                     ++p;
                     left = in;
-                } else if (lit->typeValue->kind == TypeKind::ARRAY) {
-                    ArrayExpr* arr = new ArrayExpr();
+                }
+                else if (lit->typeValue->kind == TypeKind::ARRAY)
+                {
+                    auto* arr = new ArrayExpr();
                     arr->arr_type = lit->typeValue;
                     ++p;
                     bool start = true;
-                    while (start || p.is("COMMA")) {
-                        if (p.is("RBRACE")) {
+                    while (start || p.is("COMMA"))
+                    {
+                        if (p.is("RBRACE"))
+                        {
                             break;
                         }
-                        if (!start) {
+                        if (!start)
+                        {
                             p.expect("COMMA");
                         }
                         start = false;
@@ -361,13 +458,19 @@ Named<Expr*> Parser::postfix(Ptr& p)
                     }
                     ++p;
                     left = arr;
-                } else {
+                }
+                else
+                {
                     throw runtime_error("Invalid initializer: Only array and struct initializers are allowed.");
                 }
-            } else {
+            }
+            else
+            {
                 throw runtime_error("Initializer LHS must be a type.");
             }
-        } else {
+        }
+        else
+        {
             break;
         }
     }
@@ -377,11 +480,13 @@ Named<Expr*> Parser::postfix(Ptr& p)
 
 Named<Expr*> Parser::prefix(Ptr& p)
 {
-    if (p.eof()) {
+    if (p.eof())
+    {
         throw std::runtime_error("Unexpected EOF in prefix()");
     }
 
-    if (p.is("OP")) {
+    if (p.is("OP"))
+    {
         Lexer::Token op = *p;
         if (p.expectV("*", "-", "+", "!", "&"))
         {
@@ -397,10 +502,12 @@ Named<Expr*> Parser::binExpr(Ptr& p, int minPrec)
 {
     Expr* left = prefix(p).get();
 
-    while (!p.eof() && p.is("OP")) {
+    while (!p.eof() && p.is("OP"))
+    {
         Lexer::Token op = *p;
-        int prec = precedence(op.value);
-        if (prec < minPrec) {
+        const int prec = precedence(op.value);
+        if (prec < minPrec)
+        {
             break;
         }
 
@@ -417,7 +524,8 @@ Named<Expr*> Parser::expr(Ptr& p, int minPrec)
 {
     Expr* left = binExpr(p, minPrec).get();
 
-    if (!p.eof() && p.is("EQUAL")) {
+    if (!p.eof() && p.is("EQUAL"))
+    {
         Lexer::Token op = *p;
         ++p;
         Expr* right = expr(p, 0).get();
@@ -432,19 +540,23 @@ static inline Visibility getVisibility(std::optional<Visibility> opt)
     return opt.value_or(Visibility::PROTECTED);
 }
 
-Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility visibility, bool is_extern)
+Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, const Lexer::Token& name, Visibility visibility, bool is_extern)
 {
-    if (p.isV("<")) {
+    if (p.isV("<"))
+    {
         error("Extern function cannot be generic.");
         ++p;
         auto* fn = new FuncStmt(t, name, getVisibility(visibility));
         fn->generic = true;
         bool start = true;
-        while (start || p.is("COMMA")) {
-            if (p.isV(">")) {
+        while (start || p.is("COMMA"))
+        {
+            if (p.isV(">"))
+            {
                 break;
             }
-            if (!start) {
+            if (!start)
+            {
                 p.expect("COMMA");
             }
             start = false;
@@ -455,19 +567,25 @@ Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility vi
         ++p;
         p.expect("LPAREN");
         start = true;
-        while (start || p.is("COMMA")) {
-            if (p.is("RPAREN")) {
+        while (start || p.is("COMMA"))
+        {
+            if (p.is("RPAREN"))
+            {
                 break;
             }
-            if (!start) {
+            if (!start)
+            {
                 p.expect("COMMA");
             }
             start = false;
-            if (auto ty = type(p)) {
+            if (auto ty = type(p))
+            {
                 fn->paramTypes.push_back(*ty);
                 fn->paramNames.push_back(*p);
                 p.expect("IDENTIFIER");
-            } else {
+            }
+            else
+            {
                 error("Expected type in function arguments");
             }
         }
@@ -477,7 +595,8 @@ Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility vi
         auto named = symbols->open(fn);
         symbols->open(&fn->body);
 
-        while (!p.eof() && !p.is("RBRACE")) {
+        while (!p.eof() && !p.is("RBRACE"))
+        {
             fn->body.statements.push_back(statement(p).get());
         }
 
@@ -487,38 +606,49 @@ Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility vi
         return named;
     }
 
-    if (p.is("LPAREN")) {
+    if (p.is("LPAREN"))
+    {
         ++p;
         auto* fn = new FuncStmt(t, name, getVisibility(visibility));
         fn->is_extern = is_extern;
 
         bool start = true;
-        while (start || p.is("COMMA")) {
-            if (p.is("RPAREN")) {
+        while (start || p.is("COMMA"))
+        {
+            if (p.is("RPAREN"))
+            {
                 break;
             }
-            if (!start) {
+            if (!start)
+            {
                 p.expect("COMMA");
             }
             start = false;
-            if (auto ty = type(p)) {
+            if (auto ty = type(p))
+            {
                 fn->paramTypes.push_back(*ty);
                 fn->paramNames.push_back(*p);
                 p.expect("IDENTIFIER");
-            } else {
+            }
+            else
+            {
                 error("Expected type in function arguments");
             }
         }
         p.expect("RPAREN");
         auto named = symbols->open(fn);
-        if (is_extern && p.is("LBRACE")) {
+        if (is_extern && p.is("LBRACE"))
+        {
             error("Extern function cannot have a body");
-        } else if (!is_extern) {
+        }
+        else if (!is_extern)
+        {
             p.expect("LBRACE");
 
             symbols->open(&fn->body);
 
-            while (!p.eof() && !p.is("RBRACE")) {
+            while (!p.eof() && !p.is("RBRACE"))
+            {
                 fn->body.statements.push_back(statement(p).get());
             }
 
@@ -533,7 +663,8 @@ Named<Stmt*> Parser::func(Ptr& p, TypeThing* t, Lexer::Token name, Visibility vi
     return Named<FuncStmt*>(nullptr); // unreachable
 }
 
-struct TVResult {
+struct TVResult
+{
     std::optional<TypeThing*> type;
     std::optional<Visibility> visibility;
 
@@ -545,39 +676,45 @@ struct TVResult {
 
 template <typename F>
 static TVResult
-type_or_visibility(Ptr& p, F&& type)
+typeOrVisibility(Ptr& p, F&& type)
 {
-    if (p.is("KEYWORD") && p.isV("public")) {
+    if (p.is("KEYWORD") && p.isV("public"))
+    {
         ++p;
-        return { std::nullopt, std::make_optional(Visibility::PUBLIC) };
+        return {.type = std::nullopt, .visibility = std::make_optional(Visibility::PUBLIC)};
     }
-    return { type(p), std::nullopt };
+    return {type(p), std::nullopt};
 }
 
 Named<Stmt*> Parser::statement(Ptr& p)
 {
-    if (p.eof()) {
+    if (p.eof())
+    {
         throw std::runtime_error("Unexpected EOF in statement()");
     }
 
     std::optional<Visibility> visibility = std::nullopt;
 
-    if (p.is("KEYWORD") && (*p).value == "public") {
+    if (p.is("KEYWORD") && (*p).value == "public")
+    {
         visibility = std::make_optional(Visibility::PUBLIC);
         ++p;
     }
 
-    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "return") {
+    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "return")
+    {
         ++p;
         auto r = new ReturnStmt();
-        if (!p.is("SEMICOLON")) {
+        if (!p.is("SEMICOLON"))
+        {
             r->value = expr(p).get();
         }
         p.expect("SEMICOLON");
         return symbols->open(r);
     }
 
-    if (p.is("KEYWORD") && (*p).value == "struct") {
+    if (p.is("KEYWORD") && (*p).value == "struct")
+    {
         ++p;
         Lexer::Token name = *p;
         p.expect("IDENTIFIER");
@@ -586,23 +723,32 @@ Named<Stmt*> Parser::statement(Ptr& p)
         std::optional<Parser::Named<Stmt*>> str_named = std::nullopt;
         symbols->pushDeferScope();
         bool header = true;
-        while (!p.eof() && !p.is("RBRACE")) {
-            if (auto tv = type_or_visibility(p, [this](Ptr& p) {
-                    return this->type(p);
-                })) {
-                if (tv.visibility) {
-                    auto typ = type(p);
-                    if (typ) {
+        while (!p.eof() && !p.is("RBRACE"))
+        {
+            if (auto tv = typeOrVisibility(p, [this](Ptr& p)
+            {
+                return this->type(p);
+            }))
+            {
+                if (tv.visibility)
+                {
+                    if (auto typ = type(p))
+                    {
                         tv.type = typ;
-                    } else {
+                    }
+                    else
+                    {
                         error("Not allowed !!!");
                     }
                 }
                 auto t = *tv.type;
                 auto fn = *p;
                 p.expect("IDENTIFIER");
-                if (p.is("EQUAL")) { // TODO Struct member visibility
-                    if (!header) {
+                if (p.is("EQUAL"))
+                {
+                    // TODO Struct member visibility
+                    if (!header)
+                    {
                         error("Cannot mix variables and functions order in struct");
                     }
                     p.expect("EQUAL");
@@ -610,19 +756,25 @@ Named<Stmt*> Parser::statement(Ptr& p)
                     str->names.push_back(fn);
                     str->definitions.push_back(expr(p).get());
                     p.expect("SEMICOLON");
-                } else {
-                    if (!str_named) {
+                }
+                else
+                {
+                    if (!str_named)
+                    {
                         str_named = symbols->open(str);
                     }
                     header = false;
                     str->functions.push_back(symbols->close(func(p, t, fn, getVisibility(tv.visibility)).get()).get());
                 }
-            } else {
+            }
+            else
+            {
                 delete str;
                 throw runtime_error("Expected type inside struct " + name.value);
             }
         }
-        if (!str_named) {
+        if (!str_named)
+        {
             str_named = symbols->open(str);
         }
         symbols->flushDefers();
@@ -631,7 +783,8 @@ Named<Stmt*> Parser::statement(Ptr& p)
         return *str_named;
     }
 
-    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "if") {
+    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "if")
+    {
         ++p;
         auto* ifs = new IfStmt();
         p.expect("LPAREN");
@@ -643,7 +796,8 @@ Named<Stmt*> Parser::statement(Ptr& p)
         auto named = symbols->open(ifs);
         symbols->open(&ifs->body);
 
-        while (!p.eof() && !p.is("RBRACE")) {
+        while (!p.eof() && !p.is("RBRACE"))
+        {
             ifs->body.statements.push_back(statement(p).get());
         }
 
@@ -653,10 +807,12 @@ Named<Stmt*> Parser::statement(Ptr& p)
 
         IfStmt* cur = ifs;
 
-        if (p.isV("else")) {
+        if (p.isV("else"))
+        {
             ++p;
             bool has_else = true;
-            while (p.isV("if")) {
+            while (p.isV("if"))
+            {
                 ++p;
                 cur->elseIf = new IfStmt();
                 cur = cur->elseIf;
@@ -668,28 +824,34 @@ Named<Stmt*> Parser::statement(Ptr& p)
                 symbols->open(cur);
                 symbols->open(&cur->body);
 
-                while (!p.eof() && !p.is("RBRACE")) {
+                while (!p.eof() && !p.is("RBRACE"))
+                {
                     cur->body.statements.push_back(statement(p).get());
                 }
 
                 symbols->close(&cur->body);
 
                 p.expect("RBRACE");
-                if (p.isV("else")) {
+                if (p.isV("else"))
+                {
                     ++p;
-                } else {
+                }
+                else
+                {
                     has_else = false;
                     break;
                 }
             }
-            if (has_else) {
+            if (has_else)
+            {
                 p.expect("LBRACE");
                 cur->elseStmt = new ElseStmt();
 
                 symbols->open(cur);
                 symbols->open(&cur->elseStmt->body);
 
-                while (!p.eof() && !p.is("RBRACE")) {
+                while (!p.eof() && !p.is("RBRACE"))
+                {
                     cur->elseStmt->body.statements.push_back(statement(p).get());
                 }
 
@@ -702,7 +864,8 @@ Named<Stmt*> Parser::statement(Ptr& p)
         return named;
     }
 
-    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "region") {
+    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "region")
+    {
         ++p;
         Lexer::Token name = *p;
         p.expect("IDENTIFIER");
@@ -712,7 +875,8 @@ Named<Stmt*> Parser::statement(Ptr& p)
         auto named = symbols->open(r);
         symbols->open(&r->body);
 
-        while (!p.eof() && !p.is("RBRACE")) {
+        while (!p.eof() && !p.is("RBRACE"))
+        {
             r->body.statements.push_back(statement(p).get());
         }
 
@@ -722,21 +886,25 @@ Named<Stmt*> Parser::statement(Ptr& p)
         return named;
     }
 
-    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "for") {
+    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "for")
+    {
         ++p;
         p.expect("LPAREN");
         Stmt* init = nullptr;
         Expr* condition = nullptr;
         Expr* update = nullptr;
-        if (!p.is("SEMICOLON")) {
+        if (!p.is("SEMICOLON"))
+        {
             init = statement(p).get();
         }
         p.expect("SEMICOLON");
-        if (!p.is("SEMICOLON")) {
+        if (!p.is("SEMICOLON"))
+        {
             condition = expr(p).get();
         }
         p.expect("SEMICOLON");
-        if (!p.is("RPAREN")) {
+        if (!p.is("RPAREN"))
+        {
             update = expr(p).get();
         }
         p.expect("RPAREN");
@@ -749,7 +917,8 @@ Named<Stmt*> Parser::statement(Ptr& p)
         auto named = symbols->open(f);
         symbols->open(&f->body);
 
-        while (!p.eof() && !p.is("RBRACE")) {
+        while (!p.eof() && !p.is("RBRACE"))
+        {
             f->body.statements.push_back(statement(p).get());
         }
 
@@ -759,15 +928,19 @@ Named<Stmt*> Parser::statement(Ptr& p)
         return named;
     }
 
-    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "import") {
+    if (!visibility.has_value() && p.is("KEYWORD") && (*p).value == "import")
+    {
         ++p;
         bool start = true;
-        ImportStmt* imp = new ImportStmt();
-        while (start || p.is("DOT")) {
-            if (p.is("SEMICOLON")) {
+        auto* imp = new ImportStmt();
+        while (start || p.is("DOT"))
+        {
+            if (p.is("SEMICOLON"))
+            {
                 break;
             }
-            if (!start) {
+            if (!start)
+            {
                 p.expect("DOT");
             }
             start = false;
@@ -780,20 +953,25 @@ Named<Stmt*> Parser::statement(Ptr& p)
 
     p.save();
     bool is_extern = false;
-    if (p.is("KEYWORD") && p.isV("extern")) {
+    if (p.is("KEYWORD") && p.isV("extern"))
+    {
         is_extern = true;
         ++p;
     }
-    if (auto ty = type(p)) {
+    if (auto ty = type(p))
+    {
         auto t = *ty;
 
-        if (p.is("IDENTIFIER")) {
+        if (p.is("IDENTIFIER"))
+        {
             Lexer::Token name = *p;
             ++p;
 
-            if (p.is("EQUAL")) {
+            if (p.is("EQUAL"))
+            {
                 ++p;
-                if (is_extern) {
+                if (is_extern)
+                {
                     error("Variable cannot be extern");
                 }
                 Expr* rhs = expr(p).get();
@@ -827,21 +1005,27 @@ Program Parser::buildAST(Tokens& tokens, Compiler* compiler, llvm::Module& modul
     auto it = tokens.begin();
     Ptr ptr(it, tokens.end());
 
-    while (it != tokens.end()) {
+    while (it != tokens.end())
+    {
         Stmt* stmt = symbols->close(statement(ptr).get()).get();
         symbols->resolveTypes();
-        if (auto* import = dynamic_cast<ImportStmt*>(stmt)) {
+        if (auto* import = dynamic_cast<ImportStmt*>(stmt))
+        {
             fs::path path = std::filesystem::current_path();
             std::string path_display;
-            for (auto& r : import->path) {
-                if (r != *import->path.begin()) {
+            for (auto& r : import->path)
+            {
+                if (r != *import->path.begin())
+                {
                     path_display.append(".");
                 }
                 path_display.append(r);
             }
-            for (auto& r : import->path) {
+            for (auto& r : import->path)
+            {
                 path /= r;
-                if (!fs::exists(path)) {
+                if (!fs::exists(path))
+                {
                     error("Import error: cannot find module " + path_display);
                 }
             }
@@ -857,18 +1041,21 @@ Program Parser::buildAST(Tokens& tokens, Compiler* compiler, llvm::Module& modul
     return prog;
 }
 
-void Symbols::resolveTypes(bool final)
+void Symbols::resolveTypes(bool /*final*/)
 {
-    while (!unresolved_types.empty()) {
+    while (!unresolved_types.empty())
+    {
         TypeThing* t = unresolved_types.back();
         unresolved_types.pop_back();
-        if (t->kind == TypeKind::STRUCT) {
-            auto& str = std::get<StructType>(t->data);
-            Decl* decl = search(str.name, true);
-            if (decl->kind != DeclKind::STRUCT) {
-                throw std::runtime_error(str.name + " is not a struct.");
+        if (t->kind == TypeKind::STRUCT)
+        {
+            auto& [name, decl] = std::get<StructType>(t->data);
+            Decl* resolved_decl = search(name, true);
+            if (resolved_decl->kind != DeclKind::STRUCT)
+            {
+                throw std::runtime_error(name + " is not a struct.");
             }
-            str.decl = decl;
+            decl = resolved_decl;
         }
     }
 }

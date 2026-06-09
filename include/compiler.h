@@ -11,16 +11,19 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Linker/Linker.h"
 
-struct Symbols;
+class Symbols;
 
-struct CompileResult {
+struct CompileResult
+{
     llvm::Module* mod = nullptr;
     Symbols* symbols = nullptr;
 };
 
-class Compiler {
+class Compiler
+{
 private:
-    struct ProgramData {
+    struct ProgramData
+    {
         Program program;
         Symbols* symbols;
     };
@@ -35,7 +38,7 @@ private:
 
     void printAST(ASTNode* node, const string& spacing = "");
 
-    vector<Lexer::Token> tokenize(const string& source);
+    static vector<Lexer::Token> tokenize(const string& source);
 
 public:
     Compiler();

@@ -20,7 +20,8 @@ struct IRValue
     }
 };
 
-class ASTNode {
+class ASTNode
+{
 public:
     virtual auto toString() -> std::string = 0;
     virtual auto walk() -> std::vector<ASTNode*> = 0;
@@ -28,21 +29,23 @@ public:
     virtual ~ASTNode() = default;
 };
 
-class Expr : public ASTNode {
+class Expr : public ASTNode
+{
 public:
     TypeThing* t = nullptr;
     TypeThing* actual_t = nullptr;
     Region* region;
     ~Expr() override = default;
 
-    void setType(TypeThing *ty)
+    void setType(TypeThing* ty)
     {
         t = ty;
         actual_t = ty;
     }
 };
 
-class Stmt : public ASTNode {
+class Stmt : public ASTNode
+{
 public:
     Region* region = nullptr;
 

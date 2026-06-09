@@ -9,7 +9,7 @@ using namespace std;
 
 static string readFile(const fs::path& path)
 {
-    ifstream file(path);
+    const ifstream file(path);
     stringstream buffer;
     buffer << file.rdbuf();
     return buffer.str();
@@ -17,8 +17,7 @@ static string readFile(const fs::path& path)
 
 int main()
 {
-
-    auto source = readFile(fs::path("main.to"));
+    const auto source = readFile(fs::path("main.to"));
 
     Compiler compiler;
 

@@ -48,7 +48,7 @@ static std::optional<AccessPath> getAccessPath(Expr* expr)
 {
     if (const auto* var = dynamic_cast<VariableExpr*>(expr))
     {
-        return AccessPath{var->decl, {}};
+        return AccessPath{.root = var->decl, .fields = {}};
     }
 
     if (const auto* att = dynamic_cast<AttribExpr*>(expr))
@@ -68,7 +68,7 @@ static RefinementEnv mergeEnvs(RefinementEnv& a, RefinementEnv& b)
 {
     RefinementEnv result;
     unordered_set<AccessPath, AccessPathHash> keys;
-    
+
     for (auto& [k, _] : a.map)
     {
         keys.insert(k);
@@ -836,23 +836,23 @@ void TypeChecker::close(ASTNode* node)
                 {
                     if (met.genericParams.empty())
                     {
-                        std::vector<TypeThing*> paramTypes;
-                        paramTypes.reserve(met.params.size());
+                        std::vector<TypeThing*> param_types;
+                        param_types.reserve(met.params.size());
                         for (auto* p : met.params)
                         {
-                            paramTypes.push_back(std::get<VarDecl>(p->data).type);
+                            param_types.push_back(std::get<VarDecl>(p->data).type);
                         }
-                        att->setType(interner->getFunction(paramTypes, met.returnType));
+                        att->setType(interner->getFunction(param_types, met.returnType));
                     }
                     else
                     {
-                        std::vector<TypeThing*> paramTypes;
-                        paramTypes.reserve(met.params.size());
+                        std::vector<TypeThing*> param_types;
+                        param_types.reserve(met.params.size());
                         for (auto* p : met.params)
                         {
-                            paramTypes.push_back(std::get<VarDecl>(p->data).type);
+                            param_types.push_back(std::get<VarDecl>(p->data).type);
                         }
-                        att->setType(interner->getGenericFunction(met.genericParams, paramTypes, met.returnType));
+                        att->setType(interner->getGenericFunction(met.genericParams, param_types, met.returnType));
                     }
                     goto end;
                 }

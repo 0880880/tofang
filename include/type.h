@@ -11,7 +11,8 @@
 
 struct IRContext;
 
-enum class TypeKind : uint8_t {
+enum class TypeKind : uint8_t
+{
     VOID,
     BOOL,
     U8,
@@ -42,60 +43,72 @@ enum class TypeKind : uint8_t {
 
 struct TypeThing;
 
-struct NullableType {
+struct NullableType
+{
     TypeThing* base;
 };
 
-struct PtrType {
+struct PtrType
+{
     TypeThing* pointee;
 };
 
-struct ArrType {
+struct ArrType
+{
     TypeThing* element;
     size_t length;
 };
 
-struct FuncType {
+struct FuncType
+{
     std::vector<TypeThing*> params;
     TypeThing* return_type;
 };
 
-struct MetaType {
+struct MetaType
+{
     TypeThing* type;
 };
 
-struct VarType {
+struct VarType
+{
     std::string name;
 };
 
-struct RegionType {
+struct RegionType
+{
     Decl* region;
 };
 
-struct StructType {
+struct StructType
+{
     std::string name;
     Decl* decl = nullptr;
 };
 
-struct GenericFuncType {
+struct GenericFuncType
+{
     std::vector<TypeThing*> type_params;
     std::vector<TypeThing*> params;
     TypeThing* return_type;
 };
 
-struct UserType {
+struct UserType
+{
     std::string iden;
 };
 
-struct SliceType {
+struct SliceType
+{
     TypeThing* element;
 };
 
 using TypeData = std::variant<NullableType, RegionType, PtrType,
-    ArrType, StructType, FuncType, MetaType, VarType,
-    GenericFuncType, UserType, SliceType>;
+                              ArrType, StructType, FuncType, MetaType, VarType,
+                              GenericFuncType, UserType, SliceType>;
 
-struct TypeThing {
+struct TypeThing
+{
     TypeKind kind;
     TypeData data;
 
@@ -104,7 +117,8 @@ struct TypeThing {
     llvm::Type* getLLVM(const IRContext& ir);
 };
 
-struct TypeKey {
+struct TypeKey
+{
     TypeKind kind;
 
     TypeThing* a = nullptr;
@@ -123,18 +137,22 @@ constexpr inline bool isUnsigned(const TypeThing* t)
 {
     return t->kind == TypeKind::U8 || t->kind == TypeKind::U16 || t->kind == TypeKind::U32 || t->kind == TypeKind::U64;
 }
+
 constexpr inline bool isSigned(const TypeThing* t)
 {
     return t->kind == TypeKind::I8 || t->kind == TypeKind::I16 || t->kind == TypeKind::I32 || t->kind == TypeKind::I64;
 }
+
 constexpr inline bool isInt(const TypeThing* t)
 {
     return isUnsigned(t) || isSigned(t) || t->kind == TypeKind::UNTYPED_INT;
 }
+
 constexpr inline bool isFloat(const TypeThing* t)
 {
     return t->kind == TypeKind::F32 || t->kind == TypeKind::F64 || t->kind == TypeKind::UNTYPED_FLOAT;
 }
+
 constexpr inline bool isNumeric(const TypeThing* t)
 {
     return isFloat(t) || isInt(t);
@@ -145,45 +163,55 @@ inline void hashCombine(size_t& h, size_t v)
     h ^= v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
 }
 
-struct TypeKeyHash {
+struct TypeKeyHash
+{
     size_t operator()(TypeKey const& k) const
     {
         size_t h = 0;
 
-        hashCombine(h, std::hash<int> {}(static_cast<int>(k.kind)));
-        hashCombine(h, std::hash<void*> {}(k.a));
-        hashCombine(h, std::hash<void*> {}(k.b));
-        hashCombine(h, std::hash<size_t> {}(k.length));
-        hashCombine(h, std::hash<void*> {}(k.region));
-        hashCombine(h, std::hash<std::string> {}(k.name));
+        hashCombine(h, std::hash<int>{}(static_cast<int>(k.kind)));
+        hashCombine(h, std::hash<void*>{}(k.a));
+        hashCombine(h, std::hash<void*>{}(k.b));
+        hashCombine(h, std::hash<size_t>{}(k.length));
+        hashCombine(h, std::hash<void*>{}(k.region));
+        hashCombine(h, std::hash<std::string>{}(k.name));
 
-        for (auto p : k.params) {
-            hashCombine(h, std::hash<void*> {}(p));
+        for (auto p : k.params)
+        {
+            hashCombine(h, std::hash<void*>{}(p));
         }
 
-        for (auto p : k.params_b) {
-            hashCombine(h, std::hash<void*> {}(p));
+        for (auto p : k.params_b)
+        {
+            hashCombine(h, std::hash<void*>{}(p));
         }
 
         return h;
     }
 };
 
-struct TypeKeyEq {
+struct TypeKeyEq
+{
     bool operator()(TypeKey const& a, TypeKey const& b) const
     {
-        if (a.kind != b.kind || a.a != b.a || a.b != b.b || a.length != b.length || a.region != b.region || a.name != b.name || a.params.size() != b.params.size() || a.params_b.size() != b.params_b.size()) {
+        if (a.kind != b.kind || a.a != b.a || a.b != b.b || a.length != b.length || a.region != b.region || a.name != b.
+            name || a.params.size() != b.params.size() || a.params_b.size() != b.params_b.size())
+        {
             return false;
         }
 
-        for (size_t i = 0; i < a.params.size(); i++) {
-            if (a.params[i] != b.params[i]) {
+        for (size_t i = 0; i < a.params.size(); i++)
+        {
+            if (a.params[i] != b.params[i])
+            {
                 return false;
             }
         }
 
-        for (size_t i = 0; i < a.params_b.size(); i++) {
-            if (a.params_b[i] != b.params_b[i]) {
+        for (size_t i = 0; i < a.params_b.size(); i++)
+        {
+            if (a.params_b[i] != b.params_b[i])
+            {
                 return false;
             }
         }
@@ -192,7 +220,8 @@ struct TypeKeyEq {
     }
 };
 
-class TypeInterner {
+class TypeInterner
+{
     std::unordered_map<TypeKey, TypeThing*, TypeKeyHash, TypeKeyEq> table;
 
 public:
@@ -203,11 +232,11 @@ public:
     TypeThing* getArray(TypeThing* elem, size_t len);
 
     TypeThing* getFunction(const std::vector<TypeThing*>& params,
-        TypeThing* returnType);
+                           TypeThing* returnType);
 
     TypeThing* getGenericFunction(const std::vector<TypeThing*>& type_params,
-        const std::vector<TypeThing*>& params,
-        TypeThing* returnType);
+                                  const std::vector<TypeThing*>& params,
+                                  TypeThing* returnType);
 
     TypeThing* getMeta(TypeThing* t);
 

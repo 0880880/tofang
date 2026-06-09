@@ -14,7 +14,8 @@
 
 class FuncStmt;
 
-enum class DeclKind : uint8_t {
+enum class DeclKind : uint8_t
+{
     VAR,
     FUNC,
     GENERIC_FUNC,
@@ -23,12 +24,14 @@ enum class DeclKind : uint8_t {
     CLASS
 };
 
-struct VarDecl {
+struct VarDecl
+{
     TypeThing* type;
     size_t arg_index;
 };
 
-struct FuncDecl {
+struct FuncDecl
+{
     std::vector<TypeThing*> genericParams;
     std::vector<Decl*> params;
     TypeThing* returnType;
@@ -36,7 +39,8 @@ struct FuncDecl {
     llvm::Function* llvm = nullptr;
 };
 
-struct StructDecl {
+struct StructDecl
+{
     std::vector<TypeThing*> fieldTypes;
     std::vector<Lexer::Token> fieldNames;
     std::vector<Expr*> fieldDefs;
@@ -44,16 +48,18 @@ struct StructDecl {
     llvm::StructType* llvm = nullptr;
 };
 
-enum class Visibility {
+enum class Visibility
+{
     PRIVATE,
     PROTECTED,
     PUBLIC,
 };
 
 using DeclData
-    = std::variant<VarDecl, FuncDecl, StructDecl>;
+= std::variant<VarDecl, FuncDecl, StructDecl>;
 
-struct Decl {
+struct Decl
+{
     DeclKind kind;
     Lexer::Token name;
     DeclData data;

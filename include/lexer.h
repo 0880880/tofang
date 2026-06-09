@@ -5,40 +5,49 @@
 
 using namespace std;
 
-class Lexer {
+class Lexer
+{
 private:
-  struct TokenType {
-    string pattern;
-    string type;
-  };
-  vector<TokenType> tokenTypes;
+    struct TokenType
+    {
+        string pattern;
+        string type;
+    };
+
+    vector<TokenType> tokenTypes;
 
 public:
-  struct Token {
-    string type;
-    string value;
+    struct Token
+    {
+        string type;
+        string value;
 
-    size_t sourceStart;
-    size_t sourceEnd;
-    size_t sourceLineStart;
-    size_t sourceLineEnd;
+        size_t sourceStart;
+        size_t sourceEnd;
+        size_t sourceLineStart;
+        size_t sourceLineEnd;
 
-    bool user;
+        bool user;
 
-    Token(string type, string value, size_t sourceStart, size_t sourceEnd,
-          size_t sourceLineStart, size_t sourceLineEnd)
-        : type(std::move(std::move(type))), value(std::move(std::move(value))),
-          sourceStart(sourceStart), sourceEnd(sourceEnd),
-          sourceLineStart(sourceLineStart), sourceLineEnd(sourceLineEnd),
-          user(true) {}
-    Token(string type, string value)
-        : type(std::move(std::move(type))), value(std::move(std::move(value))),
-          user(false) {}
+        Token(string type, string value, size_t sourceStart, size_t sourceEnd,
+              size_t sourceLineStart, size_t sourceLineEnd)
+            : type(std::move(std::move(type))), value(std::move(std::move(value))),
+              sourceStart(sourceStart), sourceEnd(sourceEnd),
+              sourceLineStart(sourceLineStart), sourceLineEnd(sourceLineEnd),
+              user(true)
+        {
+        }
 
-    bool operator==(const Token &) const = default;
-  };
+        Token(string type, string value)
+            : type(std::move(std::move(type))), value(std::move(std::move(value))),
+              user(false)
+        {
+        }
 
-  void token(string re, string type);
+        bool operator==(const Token&) const = default;
+    };
 
-  vector<Token> tokenize(const string &source);
+    void token(string re, string type);
+
+    vector<Token> tokenize(const string& source);
 };

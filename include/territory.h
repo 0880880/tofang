@@ -4,13 +4,14 @@
 #include "territory_ast.h"
 #include <deque>
 
-class Territory {
+class Territory
+{
 private:
-  std::deque<Region> regions{
-      Region{} // Global
-  };
+    std::deque<Region> regions{
+        Region{} // Global
+    };
 
 public:
-  void open(ASTNode *node);
-  void close(ASTNode *node);
+    void open(ASTNode* node);
+    void close(ASTNode* node);
 };
