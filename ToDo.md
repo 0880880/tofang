@@ -28,12 +28,15 @@
 - ~Remove pointer indexing / error~
 - ~Tidy~
 - ~Check territory system~
+- ~Required struct fields~
+- Change `String` to `str`
 - Standard library
 - Variadic functions
 - FMT library
 - Type Check pointer deref
 - Type Check struct attribute
 - usize type
+- Operator overloading
 - lifetime.start/end stack allocation hints
 - tidy: use std:: remove using namespace
 - revisit nullable type checking

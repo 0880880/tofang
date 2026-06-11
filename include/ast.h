@@ -486,8 +486,11 @@ public:
             defs += types[i]->toString();
             defs += " ";
             defs += names[i].value;
-            defs += " = ";
-            defs += definitions[i]->toString();
+            if (definitions[i] != nullptr)
+            {
+                defs += " = ";
+                defs += definitions[i]->toString();
+            }
             defs += "; ";
         }
         return "Struct{ " + defs + "}";

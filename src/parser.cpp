@@ -744,20 +744,7 @@ Named<Stmt*> Parser::statement(Ptr& p)
                 auto t = *tv.type;
                 auto fn = *p;
                 p.expect("IDENTIFIER");
-                if (p.is("EQUAL"))
-                {
-                    // TODO Struct member visibility
-                    if (!header)
-                    {
-                        error("Cannot mix variables and functions order in struct");
-                    }
-                    p.expect("EQUAL");
-                    str->types.push_back(t);
-                    str->names.push_back(fn);
-                    str->definitions.push_back(expr(p).get());
-                    p.expect("SEMICOLON");
-                }
-                else
+                if (p.is("LPAREN") || p.isV("<"))
                 {
                     if (!str_named)
                     {
@@ -765,6 +752,26 @@ Named<Stmt*> Parser::statement(Ptr& p)
                     }
                     header = false;
                     str->functions.push_back(symbols->close(func(p, t, fn, getVisibility(tv.visibility)).get()).get());
+                }
+                else
+                {
+                    // TODO Struct member visibility
+                    if (!header)
+                    {
+                        error("Cannot mix variables and functions order in struct");
+                    }
+                    str->types.push_back(t);
+                    str->names.push_back(fn);
+                    if (p.is("EQUAL"))
+                    {
+                        ++p;
+                        str->definitions.push_back(expr(p).get());
+                    }
+                    else
+                    {
+                        str->definitions.push_back(nullptr);
+                    }
+                    p.expect("SEMICOLON");
                 }
             }
             else

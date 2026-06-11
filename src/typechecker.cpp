@@ -497,11 +497,15 @@ void TypeChecker::close(ASTNode* node)
     {
         for (size_t i = 0; i < str->types.size(); ++i)
         {
+            if (str->definitions[i] == nullptr)
+            {
+                continue;
+            }
+
             TypeThing* lhs = str->types[i];
             TypeThing* rhs = str->definitions[i]->t;
 
             assert(lhs != nullptr);
-            assert(rhs != nullptr);
 
             if (lhs->kind == TypeKind::NULLABLE && rhs == type_inull)
             {
@@ -542,6 +546,14 @@ void TypeChecker::close(ASTNode* node)
 
         auto& p = std::get<StructDecl>(str_ty.decl->data);
         ssize_t last_index = -1;
+        std::vector<std::string> required = {};
+        for (size_t i = 0; i < p.fieldNames.size(); ++i)
+        {
+            if (p.fieldDefs[i] == nullptr)
+            {
+                required.push_back(p.fieldNames[i].value);
+            }
+        }
         for (size_t i = 0; i < str_init->names.size(); ++i)
         {
             Lexer::Token& t = str_init->names[i];
@@ -551,6 +563,14 @@ void TypeChecker::close(ASTNode* node)
             });
             if (it != p.fieldNames.end())
             {
+                auto required_it = std::ranges::find_if(required, [t](const std::string field)
+                {
+                    return field == t.value;
+                });
+                if (required_it != required.end())
+                {
+                    required.erase(required_it);
+                }
                 ssize_t idx = std::distance(p.fieldNames.begin(), it);
                 if (idx > last_index)
                 {
@@ -604,8 +624,21 @@ void TypeChecker::close(ASTNode* node)
             }
             else
             {
-                error("Unkown struct field: " + t.value);
+                error("Unknown struct field: " + t.value);
             }
+        }
+        if (!required.empty())
+        {
+            std::string required_str;
+            for (size_t i = 0; i < required.size(); ++i)
+            {
+                if (i != 0)
+                {
+                    required_str += ", ";
+                }
+                required_str += required[i];
+            }
+            error("Missing required fields: " + required_str);
         }
         str_init->setType(interner->getStruct(str_ty.name));
     }
