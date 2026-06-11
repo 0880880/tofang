@@ -18,9 +18,9 @@ using namespace llvm;
 Compiler::Compiler()
 {
     builtins = compile("BUILTINS",
-                       R"(public struct String {
-u8 *?data = null;
-u64 len = 0;
+                       R"(public struct str {
+u8 *data;
+u64 len;
 }
 )");
 }

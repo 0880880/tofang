@@ -260,7 +260,7 @@ Named<Expr*> Parser::primary(Ptr& p)
         {
             l->type = LiteralExpr::Type::String;
             const auto init = new StructInitExpr();
-            init->struct_type = interner->getStruct("String");
+            init->struct_type = interner->getStruct("str");
             symbols->unresolved_types.push_back(init->struct_type);
             init->names.emplace_back("IDENTIFIER", "data");
             init->names.emplace_back("IDENTIFIER", "len");

@@ -29,7 +29,7 @@
 - ~Tidy~
 - ~Check territory system~
 - ~Required struct fields~
-- Change `String` to `str`
+- Change `String` to `string`
 - Standard library
 - Variadic functions
 - FMT library
