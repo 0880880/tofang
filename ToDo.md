@@ -29,8 +29,10 @@
 - ~Tidy~
 - ~Check territory system~
 - ~Required struct fields~
-- Change `String` to `string`
+- ~Change `String` to `string`~
+- Passing regions in functions
 - Standard library
+- Arrays should infer length if not given.
 - Variadic functions
 - FMT library
 - Type Check pointer deref
