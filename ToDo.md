@@ -30,7 +30,7 @@
 - ~Check territory system~
 - ~Required struct fields~
 - ~Change `String` to `string`~
-- Passing regions in functions
+- Passing regions in functions (essentially regions in types)
 - Standard library
 - Arrays should infer length if not given.
 - Variadic functions
